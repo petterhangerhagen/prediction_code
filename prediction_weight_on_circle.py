@@ -17,7 +17,7 @@ def calculate_distance(p1, p2):
 
 def find_closest_neighbours(X_B, point, radius):
     """Find all neighbours within the 'radius' from 'point'.
-    
+    by
     Args:
         X_B (dict): Dictionary of all tracks.
         point (list): The reference point [x1, y1, x2, y2].
@@ -56,34 +56,26 @@ def find_initial_points(point,angle):
     y2 = y1 + 1*np.cos(np.radians(angle))
     return [x1,y1,x2,y2]
 
-
-# def compute_average_course_and_distance(neighbours):
-#     """Compute the average course and distance for filtered neighbour tracks."""
-#     total_course = total_distance = count = 0
-#     for tracks in neighbours.values():
-#         for track in tracks:
-#             course = calculate_course(track[2:4], track[4:6])
-#             distance = calculate_distance(track[2:4], track[4:6])
-#             total_course += course
-#             total_distance += distance
-#             count += 1
-#     average_course = total_course / count
-#     average_distance = total_distance / count
-#     return average_course, average_distance
-
 def compute_average_course_and_distance(neighbours, plot_statement = False):
+    weighted_course_sum = weighted_distance_sum = total_weight = 0
     total_course = total_distance = count = 0
     courses = []  # List to store all course values
     for tracks in neighbours.values():
         for track in tracks:
             course = calculate_course(track[2:4], track[4:6])
             distance = calculate_distance(track[2:4], track[4:6])
+            weight = 1 / distance
+            weighted_course_sum += weight * course
+            weighted_distance_sum += weight * distance
+            total_weight += weight
             total_course += course
             total_distance += distance
             count += 1
             courses.append(course)  # Add the course to the list
     average_course = total_course / count
     average_distance = total_distance / count
+    average_course = weighted_course_sum / total_weight
+    average_distance = weighted_distance_sum / total_weight
 
     print(f'Average course: {average_course:.2f}')
     if plot_statement:
@@ -121,8 +113,8 @@ def iterative_path_prediction(initial_point, r_c, delta_course, K, X_B):
         within_course = filter_by_course(neighbours, current_point, delta_course)
         if not within_course:
             break
-        if k > 20:
-            compute_average_course_and_distance(within_course, plot_statement=False)
+        if k > 15:
+            avg_course, avg_distance = compute_average_course_and_distance(within_course, plot_statement=False)
         else:
             avg_course, avg_distance = compute_average_course_and_distance(within_course)
         print(f'Average course: {avg_course:.2f}, Average distance: {avg_distance:.2f}')
@@ -149,15 +141,15 @@ def main():
     # initial_point = [-18, -15]
     # angle = 180 + 5
 
-    initial_point = [-10, -110]
-    angle = -5
+    initial_point = [-20, -107]
+    angle = -15
 
     initial_point = find_initial_points(initial_point,angle)
 
     # Parameters for iterative path prediction
     r_c = 10
-    delta_course = 25
-    K = 30 # Total iterations
+    delta_course = 40
+    K = 50 # Total iterations
 
     # Run the iterative path prediction algorithm
     pred_paths = iterative_path_prediction(initial_point, r_c, delta_course, K, X_B)

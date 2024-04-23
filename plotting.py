@@ -62,8 +62,8 @@ def plot_all_vessel_tracks(X_B):
 
     # Save plot to file
     save_path = 'Images/plot_all_vessel_tracks.png'
-    plt.savefig(save_path, dpi=400)
-    print(f"Plot saved to {save_path}")
+    # plt.savefig(save_path, dpi=400)
+    # print(f"Plot saved to {save_path}")
 
     return ax, origin_x, origin_y, legend_elements
 
@@ -76,18 +76,61 @@ def plot_single_vessel_track(ax, track_id, X_B, origin_x, origin_y):
         X_B (dict): Dictionary of tracks.
     """
     track = X_B[track_id]
-    points = track[:, 0:2]
+    x = track[:, 0] + origin_x
+    y = track[:, 1] + origin_y
+    # points = track[:, 0:2] 
 
     # Plot the track
-    ax.plot(points[:, 0], points[:, 1], color='red')
-    ax.plot(points[0, 0], points[0, 1], marker='o', color='green')  # Start point
-    ax.set_xlim(-120, 120)
-    ax.set_ylim(-140, 20)
+    ax.plot(x,y, color='red')
+    ax.plot(x[0],y[0], marker='o', color='green')  # Start point
+    
     
     # Save plot to file
     save_path = 'Images/plot_single_vessel_track.png'
-    plt.savefig(save_path, dpi=300)
-    print(f"Plot saved to {save_path}")
+    # plt.savefig(save_path, dpi=300)
+    # print(f"Plot saved to {save_path}")
+
+def plot_predicted_path_new(ax, pred_paths, origin_x, origin_y, legend_elements):
+    """Plot the predicted path based on provided points.
+    
+    Args:
+        ax (matplotlib.axes.Axes): The axes object to plot on.
+        point_list (list): List of points (x, y) in the predicted path.
+    """
+    # vertecis = [[-110, -110], [-80, -130], [-30, -115], [0, -120], [0, -90], [40, -60], [60, -50], [95, -20], [80, -10], [40, -8], [-20, -6], [-40, -25], [-52, -58], [-60, -68], [-110, -110]]
+    # for vertex in vertecis:
+    #     vertex[0] += origin_x
+    #     vertex[1] += origin_y
+    # for i in range(len(vertecis)-1):
+    #     ax.plot([vertecis[i][0], vertecis[i+1][0]], [vertecis[i][1], vertecis[i+1][1]], color='black')
+
+    legend_elements.append(Line2D([0], [0], marker='o', color='w', label='Predicted path start',markerfacecolor='red', markersize=10))
+    # colors = ['red', 'purple', 'blue', 'green', 'orange', 'black']
+    colors = ['#ff7f0e','#1f77b4', '#2ca02c','#c73838','#c738c0',"#33A8FF",'#33FFBD','black']  # Orange, blå, grønn, rød, rosa, lyse blå, turkis
+
+    for i,point_list_element in enumerate(pred_paths):
+        point_list = point_list_element.points
+        point_array = np.array(point_list)
+        xs = point_array[:, 0] + origin_x
+        ys = point_array[:, 1] + origin_y
+        color_ind = i % len(colors)
+        ax.plot(xs, ys, color=colors[color_ind], linewidth=2)
+        if i == 0:
+            ax.plot(point_array[0, 0] + origin_x, point_array[0, 1] + origin_y, marker='o', color=colors[color_ind], markersize=10)
+        legend_elements.append(Line2D([0], [0], color=colors[color_ind], label=f'Predicted path: {point_list_element.probability:.4f}', linewidth=2))
+    # point_array = np.array(point_list)
+    # xs = point_array[:, 0] + origin_x
+    # ys = point_array[:, 1] + origin_y
+    # ax.plot(xs, ys, color='red', linewidth=2)
+    # ax.plot(point_array[0, 0] + origin_x, point_array[0, 1] + origin_y, marker='o', color='red', markersize=10)  # Start point
+    # ax.plot(point_array[0, 0] + origin_x, point_array[0, 1] + origin_y, marker='o', color='red', markersize=10)  # Start point
+    ax.legend(handles=legend_elements, fontsize=12, loc='upper left')
+    
+    # Save plot to file
+    save_path = 'Images/plot_predicted_path.png'
+    # plt.savefig(save_path, dpi=300)
+    # print(f"Plot saved to {save_path}")
+
 
 def plot_predicted_path(ax, point_list, origin_x, origin_y, legend_elements):
     """Plot the predicted path based on provided points.
