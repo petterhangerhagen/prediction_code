@@ -2,29 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
 from plotting import start_plot, plot_all_vessel_tracks, plot_single_vessel_track, plot_predicted_path
-from utilities import generate_random_point_and_angle_in_polygon, check_point_within_bounds
-
-def calculate_course(p1, p2):
-    """Calculate the course from point p1 to p2."""
-    # dx, dy = p2[0] - p1[0], p2[1] - p1[1]
-    dx = p2[0] - p1[0]
-    dy = p2[1] - p1[1]
-    return np.degrees(np.arctan2(dx, dy))
-
-def calculate_distance(p1, p2):
-    """Calculate Euclidean distance between two points."""
-    return np.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
-
-def eucldian_distance(p1, p2):
-    """Calculate Euclidean distance between two points."""
-    # Check dimensionality of the points
-    # both must have len(4) 
-    if len(p1) != 4:
-        raise ValueError("Predicted point does not have len of 4.")
-    if len(p2) != 4:
-        raise ValueError("Point from sub-trajectory does not have len of 4.")
-    return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2 + (p1[2] - p2[2])**2 + (p1[3] - p2[3])**2)
-
+from utilities import generate_random_point_and_angle_in_polygon, check_point_within_bounds, calculate_course
+from utilities import calculate_distance, eucldian_distance, find_initial_points, predict_next_point
 
 def find_closest_neighbours(X_B, point, radius):
     closest_neighbours = {}
@@ -34,21 +13,6 @@ def find_closest_neighbours(X_B, point, radius):
             if euclidean_distance <= radius:
                 closest_neighbours.setdefault(track_id, []).append(sub_track)
     return closest_neighbours
-
-def find_initial_points(point,angle):
-    """Find the initial points based on the given point and angle."""
-    x1 = point[0]
-    y1 = point[1]
-    x2 = x1 + 1*np.sin(np.radians(angle))
-    y2 = y1 + 1*np.cos(np.radians(angle))
-    return [x1,y1,x2,y2]
-
-def predict_next_point(average_course, average_distance, current_point):
-    """Predict the next point based on average course and distance."""
-    x2, y2 = current_point[2], current_point[3]
-    x3 = x2 + average_distance * np.sin(np.radians(average_course))
-    y3 = y2 + average_distance * np.cos(np.radians(average_course))
-    return [x2, y2, x3, y3]
 
 def compute_probabilistic_course(neighbours):
     courses = []  # List to store all course values
@@ -131,7 +95,6 @@ def compute_probabilistic_course(neighbours):
     # print(f"Predicted courses: {predicted_course}")
     return predicted_course, average_distance, probabilities_list
 
-
 def calculate_similarity(course, predicted_courses):
     """Calculate the similarity between the current course and predicted courses."""
     similarities = np.abs(predicted_courses - course) % 360
@@ -139,7 +102,6 @@ def calculate_similarity(course, predicted_courses):
     # Normalize similarities to a range between 0 and 1
     normalized_similarities = 1 - (similarities / 180.0)
     return normalized_similarities
-
 
 def iterative_path_prediction(initial_point, r_c, delta_course, K, X_B):
     """Iteratively predict path based on initial point and movement statistics."""
@@ -188,7 +150,6 @@ def iterative_path_prediction(initial_point, r_c, delta_course, K, X_B):
     point_list.append(current_point[2:4])
     return point_list
 
-
 def main():
     # Load the data
     X_B = np.load('npy_files/X_B.npy', allow_pickle=True).item()
@@ -215,7 +176,6 @@ def main():
         ax, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax, X_B, origin_x, origin_y,save_plot=False)
         plot_predicted_path(ax, pred_paths, initial_point, random_angle, r_c, K, origin_x, origin_y,legend_elements,save_plot=True)
     # plt.show()
-
 
 if __name__ == '__main__':
     main()

@@ -96,3 +96,44 @@ def check_point_within_bounds(point, plot=False):
     # Return False if point is outside the polygon
     return inside
 
+def calculate_course(p1, p2):
+    """Calculate the course from point p1 to p2."""
+    dx = p2[0] - p1[0]
+    dy = p2[1] - p1[1]
+    return np.degrees(np.arctan2(dx, dy))
+
+def calculate_distance(p1, p2):
+    """Calculate Euclidean distance between two points."""
+    return np.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
+
+def eucldian_distance(p1, p2):
+    """Calculate Euclidean distance between two points."""
+    # Check dimensionality of the points
+    # both must have len(4) 
+    if len(p1) != 4:
+        raise ValueError("Predicted point does not have len of 4.")
+    if len(p2) != 4:
+        raise ValueError("Point from sub-trajectory does not have len of 4.")
+    return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2 + (p1[2] - p2[2])**2 + (p1[3] - p2[3])**2)
+
+def find_initial_points(point,angle):
+    """Find the initial points based on the given point and angle."""
+    x1 = point[0]
+    y1 = point[1]
+    x2 = x1 + 1*np.sin(np.radians(angle))
+    y2 = y1 + 1*np.cos(np.radians(angle))
+    return [x1,y1,x2,y2]
+
+def predict_next_point(average_course, average_distance, current_point):
+    """Predict the next point based on average course and distance."""
+    x2, y2 = current_point[2], current_point[3]
+    x3 = x2 + average_distance * np.sin(np.radians(average_course))
+    y3 = y2 + average_distance * np.cos(np.radians(average_course))
+    return [x2, y2, x3, y3]
+
+
+
+
+
+
+
