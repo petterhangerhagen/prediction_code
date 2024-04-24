@@ -133,6 +133,16 @@ def plot_predicted_path_new(ax, pred_paths, origin_x, origin_y, legend_elements)
     # print(f"Plot saved to {save_path}")
 
 def plot_predicted_path(ax, point_list, initial_point, inital_angle, r_c, interations, origin_x, origin_y, legend_elements, save_plot=False):
+    plot_bouns = False
+    if plot_bouns:
+        vertecis = [[-110, -110], [-80, -130], [-30, -115], [0, -120], [0, -90], [40, -60], [60, -50], [90, -32], [80, -20], [70, -10], [40, -8], [-20, -6], [-40, -25], [-52, -58], [-60, -68], [-110, -110]]
+        for vertex in vertecis:
+            vertex[0] += origin_x
+            vertex[1] += origin_y
+        for i in range(len(vertecis)-1):
+            ax.plot([vertecis[i][0], vertecis[i+1][0]], [vertecis[i][1], vertecis[i+1][1]], color='black')
+            
+        
     point_array = np.array(point_list)
     xs = point_array[:, 0] + origin_x
     ys = point_array[:, 1] + origin_y
@@ -144,7 +154,7 @@ def plot_predicted_path(ax, point_list, initial_point, inital_angle, r_c, intera
      # Create a custom legend entry for the quiver
     quiver_key = LineCollection([[(0, 0)]], colors=['black'], label='Initial direction', linewidths=[2])
     legend_elements.append(quiver_key)
-    
+
     ax.legend(handles=legend_elements, fontsize=12, loc='upper left')
 
     # Adding useful information to the plot

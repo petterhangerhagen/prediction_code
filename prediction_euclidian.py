@@ -4,6 +4,7 @@ from sklearn.mixture import GaussianMixture
 from plotting import start_plot, plot_all_vessel_tracks, plot_single_vessel_track, plot_predicted_path
 from utilities import generate_random_point_and_angle_in_polygon, check_point_within_bounds, calculate_course
 from utilities import calculate_distance, eucldian_distance, find_initial_points, predict_next_point
+from check_start_and_stop import CountMatrix
 
 def find_closest_neighbours(X_B, point, radius):
     closest_neighbours = {}
@@ -77,9 +78,9 @@ def iterative_path_prediction(initial_point, r_c, delta_course, K, X_B):
     
         predicted_courses, average_distance, probabilities_list = compute_probabilistic_course(neighbours)
         print(f"Predicted courses: {predicted_courses}")
-        print(f"Probabilities: {probabilities_list}")
+        # print(f"Probabilities: {probabilities_list}")
 
-        # # Find the course with the highest probability
+        # Find the course with the highest probability
         max_prob_index = np.argmax(probabilities_list)
         pred_course_1 = predicted_courses[max_prob_index]
 
@@ -88,23 +89,17 @@ def iterative_path_prediction(initial_point, r_c, delta_course, K, X_B):
         
         # Weight similarities by probabilities
         weighted_scores = similarities * np.array(probabilities_list)
+        print(f'Weighted scores: {weighted_scores}')
         max_score_index = np.argmax(weighted_scores)
         pred_course = predicted_courses[max_score_index]
         current_course = pred_course 
-
-        # if pred_course != pred_course_1:
-        #     print(pred_course, pred_course_1)
-        #     temp_in = input("Enter to continue")
-
         print(f'Chosen Predicted Course: {pred_course:.2f}, Average Distance: {average_distance:.2f}')
         
-
-        # print(f'Predicted course: {pred_course:.2f}, Average distance: {avg_distance:.2f}')
         current_point = predict_next_point(pred_course, average_distance, current_point)
         if not check_point_within_bounds(current_point):
             print(f'Point outside bounds at iteration {k}.')
             break
-        print(f'Next point: {current_point}')
+        # print(f'Next point: {current_point}')
         point_list.append(current_point[:2])
         print("\n")
 
@@ -114,6 +109,8 @@ def iterative_path_prediction(initial_point, r_c, delta_course, K, X_B):
 def main():
     # Load the data
     X_B = np.load('npy_files/X_B.npy', allow_pickle=True).item()
+
+    count_matrix = CountMatrix(reset=True)
 
     # Generate random point and angle in the given area
     area = "west"
@@ -137,6 +134,8 @@ def main():
         ax, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax, X_B, origin_x, origin_y,save_plot=False)
         plot_predicted_path(ax, pred_paths, initial_point, random_angle, r_c, K, origin_x, origin_y,legend_elements,save_plot=True)
         # plt.show()
+        count_matrix.check_stop(pred_paths[0],pred_paths[-1])
 
+    print(count_matrix.unvalidated_track)
 if __name__ == '__main__':
     main()
