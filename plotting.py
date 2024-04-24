@@ -3,16 +3,11 @@ from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
 import numpy as np
+from utilities import make_new_directory
+import os
+import datetime
 
-def plot_all_vessel_tracks(X_B):
-    """Plot all vessel tracks on the given Axes object.
-    
-    Args:
-        ax (matplotlib.axes.Axes): The axes object to plot on.
-        X_B (dict): Dictionary of tracks with each key being a track_id and the value being 
-                    numpy arrays of coordinates.
-    """
-
+def start_plot():
     fig, ax = plt.subplots(figsize=(11, 7.166666))
 
     # Plotting the occupancy grid'
@@ -24,13 +19,6 @@ def plot_all_vessel_tracks(X_B):
     colors = [(1, 1, 1), (0.8, 0.8, 0.8)]  # Black to light gray
     cm = LinearSegmentedColormap.from_list('custom_gray', colors, N=256)
     ax.imshow(occupancy_grid, cmap=cm, interpolation='none', origin='upper', extent=[0, occupancy_grid.shape[1], 0, occupancy_grid.shape[0]])
-    
-    # Extract points for plotting
-    points = [X_B[key][:, 0:2] for key in X_B]
-    points = np.concatenate(points, axis=0)  # combine all track points into a single array
-    xs = np.array(points[:, 0]) + origin_x  # shift x-coordinates by origin_x
-    ys = np.array(points[:, 1]) + origin_y  # shift y-coordinates by origin_y
-    scatter = ax.scatter(xs, ys, s=0.01, marker=".", color='#1f77b4')
     
     ax.set_xlim(origin_x-120,origin_x + 120)
     ax.set_ylim(origin_y-140, origin_y + 20)
@@ -54,16 +42,28 @@ def plot_all_vessel_tracks(X_B):
     plt.yticks(y_axis_list, y_axis_list_str)
 
     ax.grid(True)
-    
+
+    return ax, origin_x, origin_y
+
+def plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, save_plot=False):
+
+    # Extract points for plotting
+    points = [X_B[key][:, 0:2] for key in X_B]
+    points = np.concatenate(points, axis=0)  # combine all track points into a single array
+    xs = np.array(points[:, 0]) + origin_x  # shift x-coordinates by origin_x
+    ys = np.array(points[:, 1]) + origin_y  # shift y-coordinates by origin_y
+    scatter = ax.scatter(xs, ys, s=0.01, marker=".", color='#1f77b4')
+
     # Create a legend with a larger marker
     legend_elements = [Line2D([0], [0], marker='o', color='w', label='All tracks',
                             markerfacecolor=scatter.get_facecolor()[0], markersize=10)]
     ax.legend(handles=legend_elements, fontsize=12, loc='upper left')
 
     # Save plot to file
-    save_path = 'Images/plot_all_vessel_tracks.png'
-    # plt.savefig(save_path, dpi=400)
-    # print(f"Plot saved to {save_path}")
+    if save_plot:
+        save_path = 'Images/plot_all_vessel_tracks.png'
+        plt.savefig(save_path, dpi=400)
+        print(f"Plot saved to {save_path}")
 
     return ax, origin_x, origin_y, legend_elements
 
@@ -131,25 +131,27 @@ def plot_predicted_path_new(ax, pred_paths, origin_x, origin_y, legend_elements)
     # plt.savefig(save_path, dpi=300)
     # print(f"Plot saved to {save_path}")
 
-
-def plot_predicted_path(ax, point_list, origin_x, origin_y, legend_elements):
-    """Plot the predicted path based on provided points.
-    
-    Args:
-        ax (matplotlib.axes.Axes): The axes object to plot on.
-        point_list (list): List of points (x, y) in the predicted path.
-    """
+def plot_predicted_path(ax, point_list, initial_point, inital_angle, r_c, interations, origin_x, origin_y, legend_elements, save_plot=False):
     point_array = np.array(point_list)
     xs = point_array[:, 0] + origin_x
     ys = point_array[:, 1] + origin_y
     ax.plot(xs, ys, color='red', linewidth=2)
-    ax.plot(point_array[0, 0] + origin_x, point_array[0, 1] + origin_y, marker='o', color='red', markersize=10)  # Start point
-    # ax.plot(point_array[0, 0] + origin_x, point_array[0, 1] + origin_y, marker='o', color='red', markersize=10)  # Start point
-    legend_elements.append(Line2D([0], [0], marker='o', color='w', label='Predicted path start',markerfacecolor='red', markersize=10))
+    ax.plot(initial_point[0] + origin_x, initial_point[1] + origin_y, marker='o', color='red', markersize=10)
+    legend_elements.append(Line2D([0], [0], marker='o', color='w', label="Initial point" ,markerfacecolor='red', markersize=10))
     legend_elements.append(Line2D([0], [0], color='red', label='Predicted path', linewidth=2))
     ax.legend(handles=legend_elements, fontsize=12, loc='upper left')
+
+    # Adding useful information to the plot
+    text = f"Initial point: [{initial_point[0]:.1f},{initial_point[1]:.1f}], Initial angle: {inital_angle:.1f}, "
+    text += f"Search radius: {r_c}, Iterations: {interations}"
+    ax.text(0.0, -0.13, text, transform=ax.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='grey', alpha=0.15))
+    plt.tight_layout() 
     
     # Save plot to file
-    save_path = 'Images/plot_predicted_path.png'
-    plt.savefig(save_path, dpi=300)
-    print(f"Plot saved to {save_path}")
+    if save_plot:
+        save_path = make_new_directory()
+        now_time = datetime.datetime.now().strftime("%H,%M,%S")
+        save_path = os.path.join(save_path, f'plot_predicted_path({now_time}).png')
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+        plt.close()
