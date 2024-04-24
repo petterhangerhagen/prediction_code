@@ -120,8 +120,8 @@ def find_initial_points(point,angle):
     """Find the initial points based on the given point and angle."""
     x1 = point[0]
     y1 = point[1]
-    x2 = x1 + 1*np.sin(np.radians(angle))
-    y2 = y1 + 1*np.cos(np.radians(angle))
+    x2 = x1 + 3*np.sin(np.radians(angle))
+    y2 = y1 + 3*np.cos(np.radians(angle))
     return [x1,y1,x2,y2]
 
 def predict_next_point(average_course, average_distance, current_point):

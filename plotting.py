@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
+from matplotlib.collections import LineCollection
 import numpy as np
 from utilities import make_new_directory
 import os
@@ -137,8 +138,13 @@ def plot_predicted_path(ax, point_list, initial_point, inital_angle, r_c, intera
     ys = point_array[:, 1] + origin_y
     ax.plot(xs, ys, color='red', linewidth=2)
     ax.plot(initial_point[0] + origin_x, initial_point[1] + origin_y, marker='o', color='red', markersize=10)
+    quiver = ax.quiver(initial_point[0] + origin_x, initial_point[1] + origin_y, 3*np.sin(np.radians(inital_angle)), 3*np.cos(np.radians(inital_angle)), color='black', scale=5, scale_units='inches', width=0.005)
     legend_elements.append(Line2D([0], [0], marker='o', color='w', label="Initial point" ,markerfacecolor='red', markersize=10))
     legend_elements.append(Line2D([0], [0], color='red', label='Predicted path', linewidth=2))
+     # Create a custom legend entry for the quiver
+    quiver_key = LineCollection([[(0, 0)]], colors=['black'], label='Initial direction', linewidths=[2])
+    legend_elements.append(quiver_key)
+    
     ax.legend(handles=legend_elements, fontsize=12, loc='upper left')
 
     # Adding useful information to the plot
