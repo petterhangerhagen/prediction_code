@@ -113,18 +113,15 @@ def main():
     count_matrix = CountMatrix(reset=True)
 
     # Generate random point and angle in the given area
-    area = "west"
-    area = "east"
-    area = "south"
-    area = "north"
-    for i in range(10):
-        random_point, random_angle = generate_random_point_and_angle_in_polygon(area, plot=False)
+    area = "C"
+    for i in range(1):
+        random_point, random_angle = generate_random_point_and_angle_in_polygon(area, X_B, plot=False)
         initial_point = find_initial_points(random_point,random_angle)
-
+        
         # Parameters for iterative path prediction
         r_c = 10
         delta_course = 25
-        K = 50 # Total iterations
+        K = 100 # Total iterations
 
         # Run the iterative path prediction algorithm
         pred_paths = iterative_path_prediction(initial_point, r_c, delta_course, K, X_B)
