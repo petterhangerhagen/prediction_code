@@ -5,6 +5,8 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.lines import Line2D
 import os
 import datetime
+from sklearn.mixture import GaussianMixture
+
 
 def start_plot():
     fig, ax = plt.subplots(figsize=(11, 7.166666))
@@ -67,8 +69,7 @@ def plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, save_plot=False):
     return ax, origin_x, origin_y, legend_elements
 
 def generate_random_point_and_angle_in_polygon(area, X_B, plot=False):
-    # polygonC = np.array([[-100, -120], [-100, -100], [-80, -100], [-80, -120]])
-    polygonA = np.array([[60, -50], [90, -30], [42, -15], [35, -18]])
+    polygonA = np.array([[60, -50], [90, -30], [45, -8], [30, -16]])
     polygonB = np.array([[-18,-38], [0, -20], [-20, -12], [-30, -25]])
     polygonC = np.array([[-103, -107], [-80, -95], [-60, -110], [-80, -130]])
     polygonD = np.array([[-28,-116], [-5, -116], [-5, -90], [-28, -90]])
@@ -83,7 +84,7 @@ def generate_random_point_and_angle_in_polygon(area, X_B, plot=False):
     elif area == "east" or area == "A":
         polygon = polygonA
         angle_min = 190
-        angle_max = 260
+        angle_max = 280
     elif area == "south" or area == "D":
         polygon = polygonD
         angle_min = -40
@@ -211,8 +212,8 @@ def find_initial_points(point,angle):
     """Find the initial points based on the given point and angle."""
     x1 = point[0]
     y1 = point[1]
-    x2 = x1 + 3*np.sin(np.radians(angle))
-    y2 = y1 + 3*np.cos(np.radians(angle))
+    x2 = x1 + 4*np.sin(np.radians(angle))
+    y2 = y1 + 4*np.cos(np.radians(angle))
     return [x1,y1,x2,y2]
 
 def predict_next_point(average_course, average_distance, current_point):
@@ -223,8 +224,22 @@ def predict_next_point(average_course, average_distance, current_point):
     return [x2, y2, x3, y3]
 
 
+def filter_by_course(neighbours, current_course, delta_course):
+    filtered_neighbours = {}
+    for track_id, tracks in neighbours.items():
+        for track in tracks:
+            neighbour_course = calculate_course(track[2:4], track[4:6])
+            if abs(neighbour_course - current_course) < delta_course:
+                filtered_neighbours.setdefault(track_id, []).append(track)
+    return filtered_neighbours
 
-
-
-
+def choice_of_number_of_components(data):
+    # Compute BIC to determine the best number of components
+    bics = []
+    n_components_range = range(1, 9)  # Assuming up to 8 components
+    for n_components in n_components_range:
+        gmm = GaussianMixture(n_components=n_components).fit(data)
+        bics.append(gmm.bic(data))
+    best_n = n_components_range[np.argmin(bics)]
+    return best_n
 

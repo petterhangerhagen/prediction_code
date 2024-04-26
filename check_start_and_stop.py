@@ -16,6 +16,7 @@ class RectangleA:
         self.bottom_left = bottom_left
         self.top_right = top_right
         self.index = 0
+        self.name = "A"
 
     def __repr__(self):
         return f"RectangleA"
@@ -31,6 +32,7 @@ class RectangleB:
         self.bottom_left = bottom_left
         self.top_right = top_right
         self.index = 1
+        self.name = "B"
 
     def __repr__(self):
         return f"RectangleB"
@@ -46,6 +48,7 @@ class RectangleC:
         self.bottom_left = bottom_left
         self.top_right = top_right
         self.index = 2
+        self.name = "C"
 
     def __repr__(self):
         return f"RectangleC"
@@ -61,6 +64,7 @@ class RectangleD:
         self.bottom_left = bottom_left
         self.top_right = top_right
         self.index = 3
+        self.name = "D"
 
     def __repr__(self):
         return f"RectangleD"
@@ -76,6 +80,7 @@ class RectangleE:
         self.bottom_left = bottom_left
         self.top_right = top_right
         self.index = 4
+        self.name = "E"
 
     def __repr__(self):
         return f"RectangleE"
@@ -91,6 +96,7 @@ class RectangleF:
         self.bottom_left = bottom_left
         self.top_right = top_right
         self.index = 5
+        self.name = "F"
 
     def __repr__(self):
             return f"RectangleF"
@@ -182,7 +188,7 @@ class CountMatrix:
                     self.average_length_matrix[k][j] = int(self.average_length_matrix[k][j]/self.count_matrix[k][j])
         np.save(self.average_length_matrix_filename, self.average_length_matrix)
 
-    def check_stop(self, first_pred_point, last_pred_point):
+    def check_stop(self, first_pred_point, last_pred_point, start_rectangle_name):
         rectangleA = RectangleA()
         rectangleB = RectangleB()
         rectangleC = RectangleC()
@@ -200,10 +206,10 @@ class CountMatrix:
             if rectangle.start_or_stop(x_last,y_last):
                 stop_rectangle = rectangle
                 print(f"Stop in {stop_rectangle}")
-            if rectangle.start_or_stop(x_first,y_first):
+            if start_rectangle_name == rectangle.name:
                 start_rectangle = rectangle
                 print(f"Start in {start_rectangle}")
-
+                
         if stop_rectangle is None:
             print("No stop rectangle")
             self.unvalidated_track += 1

@@ -59,17 +59,21 @@ def compute_probabilistic_course(neighbours):
             count += 1
     average_distance = total_distance / count
     data = np.array(data)
+    np.save("data.npy", data)
+    temp_in = input("Press enter to continue")
 
-    if data.shape[0] < 60:
-        # If not enough samples, use simple mean
-        predicted = [np.mean(data, axis=0)]
-        probabilities_list = [1.0]
-    else:
-        best_n_components = choice_of_number_of_components(data)
-        gmm = GaussianMixture(n_components=best_n_components).fit(data)
-        probabilities_list = gmm.weights_
-        predicted = gmm.means_  # This will include both course and distance
-
+    # if data.shape[0] < 60:
+    #     # If not enough samples, use simple mean
+    #     predicted = [np.mean(data, axis=0)]
+    #     probabilities_list = [1.0]
+    # else:
+    best_n_components = choice_of_number_of_components(data)
+    print(f"Best number of components: {best_n_components}")
+    gmm = GaussianMixture(n_components=best_n_components).fit(data)
+    probabilities_list = gmm.weights_
+    predicted = gmm.means_  # This will include both course and distance
+    print(f"Predicted: {predicted}")
+    temp_in = input("Press enter to continue")
     return predicted, probabilities_list
 
     # # Reshape courses for GMM
@@ -189,7 +193,7 @@ def main():
     area = "south"
     area = "north"
     for i in range(10):
-        random_point, random_angle = generate_random_point_and_angle_in_polygon(area, plot=False)
+        random_point, random_angle = generate_random_point_and_angle_in_polygon(area,X_B, plot=False)
         initial_point = find_initial_points(random_point,random_angle)
 
         # Parameters for iterative path prediction
