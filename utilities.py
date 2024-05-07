@@ -223,7 +223,6 @@ def predict_next_point(average_course, average_distance, current_point):
     y3 = y2 + average_distance * np.cos(np.radians(average_course))
     return [x2, y2, x3, y3]
 
-
 def filter_by_course(neighbours, current_course, delta_course):
     filtered_neighbours = {}
     for track_id, tracks in neighbours.items():
@@ -242,4 +241,29 @@ def choice_of_number_of_components(data):
         bics.append(gmm.bic(data))
     best_n = n_components_range[np.argmin(bics)]
     return best_n
+
+def constant_velocity_model(point):
+    T = 1
+    sigma_a = 0.1
+    Q = sigma_a ** 2 * np.array(
+        [[(T ** 4) / 3, (T ** 3) / 2, 0, 0], [(T ** 3) / 2, T ** 2, 0, 0], [0, 0, (T ** 4) / 3, (T ** 3) / 2],
+            [0, 0, (T ** 3) / 2, T ** 2]]
+    )
+    F = np.array([[1, T, 0, 0], [0, 1, 0, 0], [0, 0, 1, T], [0, 0, 0, 1]])
+    t = 1.0
+    current_state = np.array([point[2], (1 / t) * (point[2] - point[0]), point[3], (1 / t) * (point[3] - point[1])])
+    predicted_state = np.dot(F, current_state) + np.random.multivariate_normal([0, 0, 0, 0], Q)
+    sub_trajectory = [point[0], point[1], point[2], point[3], predicted_state[0], predicted_state[2]]
+    return sub_trajectory
+
+def add_CVM(closest_neighbours, point):
+    alpha = 100 
+    M = len(closest_neighbours)
+    if M == 0:
+        W = 1
+    else:
+        W = round(alpha / M)
+    for i in range(W):
+        closest_neighbours.setdefault(-1, []).append(constant_velocity_model(point))
+    return closest_neighbours
 

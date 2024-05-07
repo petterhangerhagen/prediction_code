@@ -8,6 +8,8 @@ from utilities import make_new_directory
 import os
 import datetime
 
+#  colors = ['#ff7f0e','#1f77b4', '#2ca02c','#c73838','#c738c0',"#33A8FF",'#33FFBD']  # Orange, blå, grønn, rød, rosa, lyse blå, turkis
+
 def start_plot():
     fig, ax = plt.subplots(figsize=(11, 7.166666))
 
@@ -68,28 +70,22 @@ def plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, save_plot=False):
 
     return ax, origin_x, origin_y, legend_elements
 
-def plot_single_vessel_track(ax, track_id, X_B, origin_x, origin_y):
-    """Plot a single vessel track identified by track_id.
-    
-    Args:
-        ax (matplotlib.axes.Axes): The axes object to plot on.
-        track_id (int): The ID of the track to plot.
-        X_B (dict): Dictionary of tracks.
-    """
-    track = X_B[track_id]
+def plot_single_vessel_track(ax, track, origin_x, origin_y, legend_elements, save_plot=False):
     x = track[:, 0] + origin_x
     y = track[:, 1] + origin_y
-    # points = track[:, 0:2] 
-
     # Plot the track
-    ax.plot(x,y, color='red')
-    ax.plot(x[0],y[0], marker='o', color='green')  # Start point
-    
-    
+    c = '#2ca02c'  # Green
+    ax.plot(x,y, color=c, linewidth=2)
+    ax.plot(x[0],y[0], marker='o', color=c, markersize=10)  # Start point
+    legend_elements.append(Line2D([0], [0], color=c, label='Actual track', linewidth=2))
+    ax.legend(handles=legend_elements, fontsize=12, loc='upper left')
     # Save plot to file
-    save_path = 'Images/plot_single_vessel_track.png'
-    # plt.savefig(save_path, dpi=300)
-    # print(f"Plot saved to {save_path}")
+    if save_plot:
+        save_path = make_new_directory()
+        now_time = datetime.datetime.now().strftime("%H,%M,%S")
+        save_path = os.path.join(save_path, f'Prediction_compared_to_track({now_time}).png')
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
 
 def plot_predicted_path_new(ax, pred_paths, origin_x, origin_y, legend_elements):
     """Plot the predicted path based on provided points.
@@ -132,7 +128,7 @@ def plot_predicted_path_new(ax, pred_paths, origin_x, origin_y, legend_elements)
     # plt.savefig(save_path, dpi=300)
     # print(f"Plot saved to {save_path}")
 
-def plot_predicted_path(ax, point_list, initial_point, inital_angle, r_c, interations, origin_x, origin_y, legend_elements, save_plot=False):
+def plot_predicted_path(ax, point_list, initial_point, r_c, interations, origin_x, origin_y, legend_elements, save_plot=False):
     plot_bouns = False
     if plot_bouns:
         vertecis = [[-110, -110], [-80, -130], [-30, -115], [0, -120], [0, -90], [40, -60], [60, -50], [90, -32], [80, -20], [70, -10], [40, -8], [-20, -6], [-40, -25], [-52, -58], [-60, -68], [-110, -110]]
@@ -141,16 +137,18 @@ def plot_predicted_path(ax, point_list, initial_point, inital_angle, r_c, intera
             vertex[1] += origin_y
         for i in range(len(vertecis)-1):
             ax.plot([vertecis[i][0], vertecis[i+1][0]], [vertecis[i][1], vertecis[i+1][1]], color='black')
-            
-        
+    inital_angle = np.arctan2((initial_point[2]-initial_point[0]),(initial_point[3]-initial_point[1]))*180/np.pi
+    print(f"Initial angle: {inital_angle}")
+
+    c = '#ff7f0e'  # Orange
     point_array = np.array(point_list)
     xs = point_array[:, 0] + origin_x
     ys = point_array[:, 1] + origin_y
-    ax.plot(xs, ys, color='red', linewidth=2)
-    ax.plot(initial_point[0] + origin_x, initial_point[1] + origin_y, marker='o', color='red', markersize=10)
+    ax.plot(xs, ys, color=c, linewidth=2)
+    ax.plot(initial_point[0] + origin_x, initial_point[1] + origin_y, marker='o', color=c, markersize=10)
     quiver = ax.quiver(initial_point[0] + origin_x, initial_point[1] + origin_y, 3*np.sin(np.radians(inital_angle)), 3*np.cos(np.radians(inital_angle)), color='black', scale=5, scale_units='inches', width=0.005)
-    legend_elements.append(Line2D([0], [0], marker='o', color='w', label="Initial point" ,markerfacecolor='red', markersize=10))
-    legend_elements.append(Line2D([0], [0], color='red', label='Predicted path', linewidth=2))
+    legend_elements.append(Line2D([0], [0], marker='o', color='w', label="Initial point" ,markerfacecolor=c, markersize=10))
+    legend_elements.append(Line2D([0], [0], color=c, label='Predicted path', linewidth=2))
      # Create a custom legend entry for the quiver
     quiver_key = LineCollection([[(0, 0)]], colors=['black'], label='Initial direction', linewidths=[2])
     legend_elements.append(quiver_key)
@@ -170,4 +168,5 @@ def plot_predicted_path(ax, point_list, initial_point, inital_angle, r_c, intera
         save_path = os.path.join(save_path, f'plot_predicted_path({now_time}).png')
         plt.savefig(save_path, dpi=300)
         print(f"Plot saved to {save_path}")
-        plt.close()
+    
+    return ax, origin_x, origin_y, legend_elements

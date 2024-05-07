@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
-from plotting import start_plot, plot_all_vessel_tracks, plot_predicted_path
+from plotting import start_plot, plot_all_vessel_tracks, plot_predicted_path, plot_single_vessel_track
 from utilities import (
     generate_random_point_and_angle_in_polygon,
     check_point_within_bounds,
@@ -10,6 +10,7 @@ from utilities import (
     eucldian_distance,
     find_initial_points,
     predict_next_point,
+    add_CVM
 )
 from check_start_and_stop import CountMatrix
 from GMM_components import get_GMM
@@ -21,30 +22,13 @@ class NCDM:
         self.gmm_components = 5
         self.gmm_margin = 30
         self.CVM = False
+        self.compare_to_track = False
 
-    def constant_velocity_model(self, point):
-        T = 1
-        sigma_a = 0.1
-        Q = sigma_a ** 2 * np.array(
-            [[(T ** 4) / 3, (T ** 3) / 2, 0, 0], [(T ** 3) / 2, T ** 2, 0, 0], [0, 0, (T ** 4) / 3, (T ** 3) / 2],
-             [0, 0, (T ** 3) / 2, T ** 2]]
-        )
-        F = np.array([[1, T, 0, 0], [0, 1, 0, 0], [0, 0, 1, T], [0, 0, 0, 1]])
-        t = 1.0
-        current_state = np.array([point[2], (1 / t) * (point[2] - point[0]), point[3], (1 / t) * (point[3] - point[1])])
-        predicted_state = np.dot(F, current_state) + np.random.multivariate_normal([0, 0, 0, 0], Q)
-        sub_trajectory = [point[0], point[1], point[2], point[3], predicted_state[0], predicted_state[2]]
-        return sub_trajectory
-
-    def add_CVM(self, closest_neighbours, point):
-        alpha = 100 
-        M = len(closest_neighbours)
-        if M == 0:
-            W = 1
-        else:
-            W = round(alpha / M)
-        for i in range(W):
-            closest_neighbours.setdefault(-1, []).append(self.constant_velocity_model(point))
+    def find_track(self, track_id):
+        self.track = self.X_B[track_id]
+        track_initial_point = self.track[0][:4]
+        self.compare_to_track = True
+        return track_initial_point
 
     def find_closest_neighbours(self, point, radius):
         closest_neighbours = {}
@@ -54,7 +38,7 @@ class NCDM:
                 if euclidean_distance <= radius:
                     closest_neighbours.setdefault(track_id, []).append(sub_track)
         if self.CVM:
-            self.add_CVM(closest_neighbours, point)
+            closest_neighbours = add_CVM(closest_neighbours, point)
 
         return closest_neighbours
 
@@ -121,13 +105,16 @@ class NCDM:
         ax, origin_x, origin_y = start_plot()
         ax, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax, self.X_B, origin_x, origin_y,
                                                                          save_plot=False)
-        plot_predicted_path(ax, pred_paths, initial_point, random_angle, r_c, K, origin_x, origin_y,
-                            legend_elements, save_plot=True)
+        ax, origin_x, origin_y, legend_elements = plot_predicted_path(ax, pred_paths, initial_point, r_c, K, origin_x, origin_y,
+                            legend_elements, save_plot=False)
+        if self.compare_to_track:
+            plot_single_vessel_track(ax, self.track, origin_x, origin_y, legend_elements, save_plot=True)
 
 
 if __name__ == '__main__':
     path_predictor = NCDM('npy_files/X_B.npy')
-    initial_point = [-23, -105]
-    random_angle = -10
-    initial_point = find_initial_points(initial_point, random_angle)
-    path_predictor.run_prediction(initial_point, r_c=6, K=100)
+    initial_point = path_predictor.find_track(5)
+    # initial_point = [-23, -105]
+    # random_angle = -10
+    # initial_point = find_initial_points(initial_point, random_angle)
+    path_predictor.run_prediction(initial_point, r_c=5, K=100)
