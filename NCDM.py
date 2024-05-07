@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
-from plotting import start_plot, plot_all_vessel_tracks, plot_predicted_path, plot_single_vessel_track
+from plotting import start_plot, plot_all_vessel_tracks, plot_predicted_path, plot_single_vessel_track, plot_histogram
 from utilities import (
     generate_random_point_and_angle_in_polygon,
     check_point_within_bounds,
@@ -19,12 +19,19 @@ from GMM_components import get_GMM
 class NCDM:
     def __init__(self, data_file):
         self.X_B = np.load(data_file, allow_pickle=True).item()
-        self.gmm_components = 5
-        self.gmm_margin = 30
+        self.num_tracks = len(self.X_B)
+        self.gmm_components = 8
+        self.gmm_margin = 10
         self.CVM = False
         self.compare_to_track = False
+        self.plot_histogram = False
+
+        self.r_c = 10
+        self.K = 100
+        self.track_id = None
 
     def find_track(self, track_id):
+        self.track_id = track_id
         self.track = self.X_B[track_id]
         track_initial_point = self.track[0][:4]
         self.compare_to_track = True
@@ -59,19 +66,37 @@ class NCDM:
             probabilities_list = [1.0]
         else:
             gmm = get_GMM(data, max_comps=self.gmm_components, margin=self.gmm_margin)
+            if self.plot_histogram:
+                plot_histogram(data, gmm, self.point_list, self.track_id, save_plot=True)
             probabilities_list = gmm.weights_
             predicted = gmm.means_
             predicted_course = [course[0] for course in predicted]
         return predicted_course, average_distance, probabilities_list
 
-    def calculate_similarity(self, course, predicted_courses):
+    def calculate_similarity_old(self, course, predicted_courses):
         similarities = np.abs(predicted_courses - course) % 360
         similarities = np.minimum(similarities, 360 - similarities)
         normalized_similarities = 1 - (similarities / 180.0)
         return normalized_similarities
+    
+    def calculate_similarity(self, course, predicted_courses):
+        similarities = np.abs(predicted_courses - course)
+        modified_similarities = np.zeros(len(similarities))
+        for i in range(len(similarities)):
+            if similarities[i] < 5:
+                modified_similarities[i] = 1
+            elif similarities[i] < 10:
+                modified_similarities[i] = 0.8
+            elif similarities[i] < 20:
+                modified_similarities[i] = 0.6
+            elif similarities[i] < 30:
+                modified_similarities[i] = 0.4
+            else:
+                modified_similarities[i] = 0
+        return modified_similarities
 
     def iterative_path_prediction(self, initial_point, r_c, K):
-        point_list = [initial_point[:2]]
+        self.point_list = [initial_point[:2]]
         current_point = initial_point
         current_course = calculate_course(current_point[:2], current_point[2:4])
         for k in range(K):
@@ -96,25 +121,29 @@ class NCDM:
             current_point = predict_next_point(pred_course, average_distance, current_point)
             if not check_point_within_bounds(current_point):
                 break
-            point_list.append(current_point[:2])
-        point_list.append(current_point[2:4])
-        return point_list
+            self.point_list.append(current_point[:2])
+            print("\n")
+        self.point_list.append(current_point[2:4])
+        return self.point_list
 
-    def run_prediction(self, initial_point, r_c, K):
-        pred_paths = self.iterative_path_prediction(initial_point, r_c, K)
+    def run_prediction(self, initial_point):
+        pred_paths = self.iterative_path_prediction(initial_point, self.r_c, self.K)
         ax, origin_x, origin_y = start_plot()
         ax, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax, self.X_B, origin_x, origin_y,
                                                                          save_plot=False)
-        ax, origin_x, origin_y, legend_elements = plot_predicted_path(ax, pred_paths, initial_point, r_c, K, origin_x, origin_y,
+        ax, origin_x, origin_y, legend_elements = plot_predicted_path(ax, pred_paths, initial_point, self.r_c, self.K, origin_x, origin_y,
                             legend_elements, save_plot=False)
         if self.compare_to_track:
-            plot_single_vessel_track(ax, self.track, origin_x, origin_y, legend_elements, save_plot=True)
+            plot_single_vessel_track(ax, self.track, origin_x, origin_y, legend_elements, self.track_id, save_plot=True)
 
 
 if __name__ == '__main__':
     path_predictor = NCDM('npy_files/X_B.npy')
-    initial_point = path_predictor.find_track(5)
-    # initial_point = [-23, -105]
-    # random_angle = -10
-    # initial_point = find_initial_points(initial_point, random_angle)
-    path_predictor.run_prediction(initial_point, r_c=5, K=100)
+    for i in range(path_predictor.num_tracks):
+        initial_point = path_predictor.find_track(i)
+        path_predictor.run_prediction(initial_point)
+    # initial_point = path_predictor.find_track(14)        # 5
+    # # initial_point = [-23, -105]
+    # # random_angle = -10
+    # # initial_point = find_initial_points(initial_point, random_angle)
+    # path_predictor.run_prediction(initial_point)

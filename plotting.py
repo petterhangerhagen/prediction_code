@@ -7,6 +7,7 @@ import numpy as np
 from utilities import make_new_directory
 import os
 import datetime
+from scipy.stats import norm
 
 #  colors = ['#ff7f0e','#1f77b4', '#2ca02c','#c73838','#c738c0',"#33A8FF",'#33FFBD']  # Orange, blå, grønn, rød, rosa, lyse blå, turkis
 
@@ -70,7 +71,7 @@ def plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, save_plot=False):
 
     return ax, origin_x, origin_y, legend_elements
 
-def plot_single_vessel_track(ax, track, origin_x, origin_y, legend_elements, save_plot=False):
+def plot_single_vessel_track(ax, track, origin_x, origin_y, legend_elements, track_id, save_plot=False):
     x = track[:, 0] + origin_x
     y = track[:, 1] + origin_y
     # Plot the track
@@ -82,8 +83,12 @@ def plot_single_vessel_track(ax, track, origin_x, origin_y, legend_elements, sav
     # Save plot to file
     if save_plot:
         save_path = make_new_directory()
-        now_time = datetime.datetime.now().strftime("%H,%M,%S")
-        save_path = os.path.join(save_path, f'Prediction_compared_to_track({now_time}).png')
+        if track_id is not None:
+            save_name = f"Track_{track_id}"
+            save_path = os.path.join(save_path, save_name)
+        else:
+            now_time = datetime.datetime.now().strftime("%H,%M,%S")
+            save_path = os.path.join(save_path, f'Prediction_compared_to_track({now_time}).png')
         plt.savefig(save_path, dpi=300)
         print(f"Plot saved to {save_path}")
 
@@ -138,7 +143,6 @@ def plot_predicted_path(ax, point_list, initial_point, r_c, interations, origin_
         for i in range(len(vertecis)-1):
             ax.plot([vertecis[i][0], vertecis[i+1][0]], [vertecis[i][1], vertecis[i+1][1]], color='black')
     inital_angle = np.arctan2((initial_point[2]-initial_point[0]),(initial_point[3]-initial_point[1]))*180/np.pi
-    print(f"Initial angle: {inital_angle}")
 
     c = '#ff7f0e'  # Orange
     point_array = np.array(point_list)
@@ -170,3 +174,82 @@ def plot_predicted_path(ax, point_list, initial_point, r_c, interations, origin_
         print(f"Plot saved to {save_path}")
     
     return ax, origin_x, origin_y, legend_elements
+
+def occupancy_grid_to_map(ax):
+    # Plotting the occupancy grid'
+    data = np.load(f"npy_files/occupancy_grid_without_dilating.npy",allow_pickle='TRUE').item()
+    occupancy_grid = data["occupancy_grid"]
+    origin_x = data["origin_x"]
+    origin_y = data["origin_y"]
+
+    colors = [(1, 1, 1), (0.8, 0.8, 0.8)]  # Black to light gray
+    cm = LinearSegmentedColormap.from_list('custom_gray', colors, N=256)
+    ax.imshow(occupancy_grid, cmap=cm, interpolation='none', origin='upper', extent=[0, occupancy_grid.shape[1], 0, occupancy_grid.shape[0]])
+    
+    ax.set_xlim(origin_x-120,origin_x + 120)
+    ax.set_ylim(origin_y-140, origin_y + 20)
+    ax.set_aspect('equal')
+    ax.set_xlabel('East [m]',fontsize=15)
+    ax.set_ylabel('North [m]',fontsize=15)
+    ax.grid(True)
+    return ax, origin_x, origin_y
+
+def plot_histogram(data, gmm, pred_path,track_id, save_plot=False):
+    fig2, (ax1,ax2) = plt.subplots(1,2,figsize=(11, 7.166666))
+
+    # plot the predicted path
+    ax1, origin_x, origin_y = occupancy_grid_to_map(ax1)
+    point_array = np.array(pred_path)
+    xs = point_array[:, 0] + origin_x
+    ys = point_array[:, 1] + origin_y
+    ax1.plot(xs, ys, color='black', linewidth=2)
+    ax1.plot(point_array[0, 0] + origin_x, point_array[0, 1] + origin_y, marker='o', color='black', markersize=10)
+
+
+    # plot the histogram
+    ax2.hist(data, bins=100, density=True, alpha=0.6, color='g')
+    x = np.linspace(-180, 180, 1000)
+    for i in range(gmm.n_components):
+        ax2.plot(x, norm.pdf(x, gmm.means_[i, 0], np.sqrt(gmm.covariances_[i, 0, 0])),
+                label=f'Component {i+1}')
+
+
+    ax2.set_xlabel('Course [degrees]', fontsize=15)
+    ax2.set_ylabel('Density', fontsize=15)
+    ax2.legend(['Data', 'Predicted'], fontsize=12)
+
+    means = gmm.means_
+    probs = gmm.weights_
+    means = np.array(means).reshape(-1)
+    txt_means = ""
+    txt_prob = ""
+    for (mean,prob) in zip(means,probs):
+        if prob < 0.1:
+            continue
+        txt_means += f"{mean:.1f}, "
+        txt_prob += f"{prob:.3f}, "
+
+
+    # Adding useful information to the plot
+    text = f"{gmm.n_components} components, {len(data)} samples\n"
+    text += f"Means: {txt_means}\n"
+    text += f"Probs: {txt_prob}"
+    ax1.text(0.0, -0.3, text, transform=ax1.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='grey', alpha=0.15))
+    plt.tight_layout() 
+
+    plt.tight_layout()
+    # Save plot to file
+    if save_plot:
+        if track_id is not None:
+            dir_name = f"Histograms/Track_{track_id}"
+        else:
+            dir_name = f"Histograms/no_track_id"
+        save_path = make_new_directory(dir_name=dir_name,include_date=False)
+        now_time = datetime.datetime.now().strftime("%H,%M,%S")
+        save_path = os.path.join(save_path, f'Histogram_({now_time}).png')
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+    # plt.show()
+    plt.close(fig2)
+    # temp_in = input("Press enter to continue")
+

@@ -142,9 +142,9 @@ def generate_random_point_and_angle_in_polygon(area, X_B, plot=False):
 
     return random_point, random_angle
 
-def make_new_directory():
+def make_new_directory(dir_name="Results", include_date=True):
     wokring_directory = os.getcwd()
-    root = os.path.join(wokring_directory, "Results")
+    root = os.path.join(wokring_directory, dir_name)
     print(f"Root directory: {root}")
 
     if not os.path.exists(root):
@@ -153,10 +153,13 @@ def make_new_directory():
     else:
         print(f"Directory {root} already exists")
 
-    todays_date = datetime.datetime.now().strftime("%d-%b")
-    path = os.path.join(root,todays_date)
-    if not os.path.exists(path):
-        os.mkdir(path)
+    if include_date:
+        todays_date = datetime.datetime.now().strftime("%d-%b")
+        path = os.path.join(root,todays_date)
+        if not os.path.exists(path):
+            os.mkdir(path)
+    else:
+        path = root
     return path
 
 def check_point_within_bounds(point, plot=False):
