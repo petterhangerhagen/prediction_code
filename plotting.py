@@ -63,7 +63,7 @@ def plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, save_plot=False):
     # Save plot to file
     if save_plot:
         save_path = 'Images/plot_all_vessel_tracks.png'
-        plt.savefig(save_path, dpi=400)
+        plt.savefig(save_path, dpi=100)
         print(f"Plot saved to {save_path}")
 
     return ax, origin_x, origin_y, legend_elements

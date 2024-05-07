@@ -22,19 +22,20 @@ def find_closest_neighbours(X_B, point, radius):
     closest_neighbours = {}
     for track_id, track in X_B.items():
         for sub_track in track:
-            euclidean_distance = eucldian_distance(point, sub_track[2:6])
+            euclidean_distance = eucldian_distance(point, sub_track[:4])
             if euclidean_distance <= radius:
                 closest_neighbours.setdefault(track_id, []).append(sub_track)
 
-    alpha = 100 
-    M = len(closest_neighbours)
-    if M == 0:
-        W = 1
-    else:
-        W = round(alpha / M)
-    print(f"Adding {W} constant velocity points to the closest neighbours.")
-    for i in range(W):
-        closest_neighbours.setdefault(-1, []).append(constant_velocity_model(point))
+    # alpha = 100 
+    # M = len(closest_neighbours)
+    # if M == 0:
+    #     W = 1
+    # else:
+    #     W = round(alpha / M)
+    # print(f"Adding {W} constant velocity points to the closest neighbours.")
+
+    # for i in range(W):
+    #     closest_neighbours.setdefault(-1, []).append(constant_velocity_model(point))
 
     return closest_neighbours
 
@@ -57,8 +58,10 @@ def compute_probabilistic_course(neighbours):
         predicted_course = data[0]
         probabilities_list = [1.0]
         return predicted_course, average_distance, probabilities_list
+    
     # Fit GMM to the data
-    gmm = get_GMM(data, max_comps=5, margin=10)
+    # gmm = get_GMM(data, max_comps=5, margin=10)
+    gmm = get_GMM(data, max_comps=5, margin=30)
     probabilities_list = gmm.weights_
     predicted = gmm.means_  # This will include both course and distance
 
@@ -67,6 +70,7 @@ def compute_probabilistic_course(neighbours):
 
 def calculate_similarity(course, predicted_courses):
     """Calculate the similarity between the current course and predicted courses."""
+    # If the course is larger than 360 need to use modulo
     similarities = np.abs(predicted_courses - course) % 360
     similarities = np.minimum(similarities, 360 - similarities)  # Adjust for circular nature of angles
     # Normalize similarities to a range between 0 and 1
@@ -82,6 +86,8 @@ def iterative_path_prediction(initial_point, r_c, delta_course, K, X_B):
 
     for k in range(K):
         print(f'Iteration {k}')
+        current_course = calculate_course(current_point[:2], current_point[2:4])
+        print(f"Current course: {current_course:.2f}")
 
         neighbours = find_closest_neighbours(X_B, current_point, r_c)
         print(f"Number of closest neighbours: {len(neighbours)}")
@@ -93,28 +99,30 @@ def iterative_path_prediction(initial_point, r_c, delta_course, K, X_B):
         # if not neighbours:
         #     print(f'No neighbours found within course range at iteration {k}.')
         #     break
-    
+
         predicted_courses, average_distance, probabilities_list = compute_probabilistic_course(neighbours)
         print(f"Predicted courses: {predicted_courses}")
         
-
-        # Find the course with the highest probability
-        # max_prob_index = np.argmax(probabilities_list)
-        # pred_course = predicted_courses[max_prob_index]
-        # print(f"Probabilities: {probabilities_list}")
-        # print(f'Predicted Course: {pred_course:.2f}, Average Distance: {average_distance:.2f}')
-        # current_course = pred_course
-
-        #  Calculate similarities with the current course
-        similarities = calculate_similarity(current_course, predicted_courses)
-        # Weight similarities by probabilities
-        weighted_scores = similarities * np.array(probabilities_list)
-        print(f'Weighted scores: {weighted_scores}')
-        max_score_index = np.argmax(weighted_scores)
-        pred_course = predicted_courses[max_score_index]
-        current_course = pred_course 
-        print(f'Chosen Predicted Course: {pred_course:.2f}, Average Distance: {average_distance:.2f}')
-        
+        choice = 1
+        if choice == 0:
+            # Find the course with the highest probability
+            max_prob_index = np.argmax(probabilities_list)
+            pred_course = predicted_courses[max_prob_index]
+            current_course = pred_course
+            # print(f"Probabilities: {probabilities_list}")
+            # print(f'Predicted Course: {pred_course:.2f}, Average Distance: {average_distance:.2f}')
+            
+        elif choice == 1:
+            # Calculate similarities with the current course
+            similarities = calculate_similarity(current_course, predicted_courses)
+            # Weight similarities by probabilities
+            weighted_scores = similarities * np.array(probabilities_list)
+            max_score_index = np.argmax(weighted_scores)
+            pred_course = predicted_courses[max_score_index]
+            current_course = pred_course 
+            # print(f'Weighted scores: {weighted_scores}')
+            # print(f'Chosen Predicted Course: {pred_course:.2f}, Average Distance: {average_distance:.2f}')
+    
         current_point = predict_next_point(pred_course, average_distance, current_point)
         if not check_point_within_bounds(current_point):
             print(f'Point outside bounds at iteration {k}.')
@@ -126,67 +134,32 @@ def iterative_path_prediction(initial_point, r_c, delta_course, K, X_B):
     point_list.append(current_point[2:4])
     return point_list
 
-def iterative_path_prediction_CVM(initial_point, r_c, delta_course, K, X_B):
-    """Iteratively predict path based on initial point and movement statistics."""
-
-    point_list = [initial_point[:2]]
-    current_point = initial_point
-    current_course = calculate_course(current_point[:2], current_point[2:4])
-
-    for k in range(K):
-        print(f'Iteration {k}')
-        print(f"Current point: {current_point}")
-        pred_point = constant_velocity_model(current_point)
-        current_point = pred_point
-        print(f"Predicted point: {current_point}")
-        # neighbours = find_closest_neighbours(X_B, current_point, r_c)
-        # print(f"Number of closest neighbours: {len(neighbours)}")
-        # if not neighbours:
-        #     break
-    
-        # predicted_courses, average_distance, probabilities_list = compute_probabilistic_course(neighbours)
-        # print(f"Predicted courses: {predicted_courses}")
-        # print(f"Probabilities: {probabilities_list}")
-
-        # # Find the course with the highest probability
-        # max_prob_index = np.argmax(probabilities_list)
-        # pred_course_1 = predicted_courses[max_prob_index]
-        # print(f'Predicted Course: {pred_course_1:.2f}, Average Distance: {average_distance:.2f}')
-
-        # current_point = predict_next_point(pred_course_1, average_distance, current_point)
-        # if not check_point_within_bounds(current_point):
-        #     print(f'Point outside bounds at iteration {k}.')
-        #     break
-
-        # print(f'Next point: {current_point}')
-        point_list.append(current_point[:2])
-        print("\n")
-
-    # point_list.append(current_point[2:4])
-    return point_list
-
-def main():
+if __name__ == '__main__':
     # Load the data
     X_B = np.load('npy_files/X_B.npy', allow_pickle=True).item()
 
-    count_matrix = CountMatrix(reset=True)
+    # ax, origin_x, origin_y = start_plot()
+    # ax, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax, X_B, origin_x, origin_y,save_plot=True)
+
+    # count_matrix = CountMatrix(reset=True)
 
     # Generate random point and angle in the given area
-    area = "A"
-    for i in range(43):
-        random_point, random_angle = generate_random_point_and_angle_in_polygon(area, X_B, plot=False)
-        initial_point = find_initial_points(random_point,random_angle)
+    # area = "F"
+    for i in range(1):
+        # random_point, random_angle = generate_random_point_and_angle_in_polygon(area, X_B, plot=False)
+        # initial_point = find_initial_points(random_point,random_angle)
+
         # initial_point = [40, -20.6]
         # random_angle = -90
         # initial_point = find_initial_points(initial_point,random_angle)
 
-        # initial_point = [-23, -105]
-        # random_angle = -20
-        # initial_point = find_initial_points(initial_point,random_angle)
+        initial_point = [-23, -105]
+        random_angle = -10
+        initial_point = find_initial_points(initial_point,random_angle)
 
         
         # Parameters for iterative path prediction
-        r_c = 5
+        r_c = 6
         delta_course = 60
         K = 100 # Total iterations
 
@@ -198,10 +171,6 @@ def main():
         ax, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax, X_B, origin_x, origin_y,save_plot=False)
         plot_predicted_path(ax, pred_paths, initial_point, random_angle, r_c, K, origin_x, origin_y,legend_elements,save_plot=True)
         # plt.show()
-        count_matrix.check_stop(pred_paths[0],pred_paths[-1],area)
+        # count_matrix.check_stop(pred_paths[0],pred_paths[-1],area)
 
-    print(count_matrix.unvalidated_track)
-
-
-if __name__ == '__main__':
-    main()
+    # print(count_matrix.unvalidated_track)

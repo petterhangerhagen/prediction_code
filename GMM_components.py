@@ -21,7 +21,8 @@ def get_GMM(X, max_comps, margin):
         for i in range(k-1):
             for j in range(i+1, k):
                 if np.linalg.norm(GMM.means_[i] - GMM.means_[j]) < margin:
-                    GMM = prev_GMM
+                    print(f"Found GMM with {k} components")
+                    # GMM = prev_GMM
                     found = True
                     break
             if found:
