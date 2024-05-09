@@ -1,7 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
-from plotting import start_plot, plot_all_vessel_tracks, plot_predicted_path, plot_single_vessel_track, plot_histogram, plot_close_neigbors
+from plotting import (
+    start_plot, 
+    plot_all_vessel_tracks, 
+    plot_predicted_path, 
+    plot_single_vessel_track, 
+    plot_histogram, 
+    plot_close_neigbors, 
+    plot_histogram_2,
+    plot_recursive_paths
+)
 from utilities import (
     generate_random_point_and_angle_in_polygon,
     check_point_within_bounds,
@@ -29,6 +38,11 @@ class NCDM:
         self.r_c = 10
         self.K = 100
         self.track_id = None
+        with open(f"test.txt", "w") as f:
+            f.write("")
+
+        self.point_dict = {}
+        self.recursive_counter = 0
 
     def find_track(self, track_id):
         self.track_id = track_id
@@ -73,6 +87,7 @@ class NCDM:
             predicted = gmm.means_
             predicted_course = [course[0] for course in predicted]
         return data,gmm, predicted_course, average_distance, probabilities_list
+        
 
     def calculate_similarity(self, course, predicted_courses):
         similarities = np.abs(predicted_courses - course) % 360
@@ -96,8 +111,9 @@ class NCDM:
                 modified_similarities[i] = 0
         return modified_similarities
 
-    def iterative_path_prediction(self, initial_point, r_c, K):
-        self.point_list = [initial_point[:2]]
+    def iterative_path_prediction(self, initial_point, r_c, K, recursive_run=False):
+        self.recursive_counter += 1
+        point_list = [initial_point[:2]]
         current_point = initial_point
         current_course = calculate_course(current_point[:2], current_point[2:4])
         for k in range(K):
@@ -109,55 +125,56 @@ class NCDM:
                 break
             data, gmm, predicted_courses, average_distance, probabilities_list = self.compute_probabilistic_course(neighbours)
 
-            choice = 1
-            if choice == 0:
-                max_prob_index = np.argmax(probabilities_list)
-                pred_course = predicted_courses[max_prob_index]
-                current_course = pred_course
-            elif choice == 1:
-                # print(f"Current course: {current_course:.2f}")
-                courses_to_remove = []
-                for pred_course in predicted_courses:
-                    # print("---------------------------")
-                    # print(f"Predicted course: {pred_course:.2f}")
-                    # print(f"{np.abs(pred_course - current_course):.2f}")
-                    if (np.abs(pred_course - current_course) > 70):
-                        # print(f"Removing course: {pred_course:.2f}")
-                        courses_to_remove.append(pred_course)
-                        # print(f"{np.abs(pred_course - current_course):.2f}")
-                        # probabilities_list = np.delete(probabilities_list, predicted_courses.index(pred_course))
-                        # predicted_courses.remove(pred_course)
-                for course in courses_to_remove:
+            # Check the predicted courses if they are within the bounds
+            for course in predicted_courses:
+                if np.abs(course - current_course) > 100:
                     probabilities_list = np.delete(probabilities_list, predicted_courses.index(course))
                     predicted_courses.remove(course)
-                # print(f"Remaining courses: {predicted_courses}")
-                # print("#########################")
-                max_prob_index = np.argmax(probabilities_list)
-                pred_course = predicted_courses[max_prob_index]
-                # print(f"Predicted course: {pred_course}")
-                # print(f"Current course: {current_course}")
-                current_course = pred_course
-            elif choice == 2:
-                similarities = self.calculate_similarity(current_course, predicted_courses)
-                weighted_scores = similarities * np.array(probabilities_list)
-                max_score_index = np.argmax(weighted_scores)
-                pred_course = predicted_courses[max_score_index]
-                current_course = pred_course
+            
+            
+                
+
+            max_prob_index = np.argmax(probabilities_list)
+            pred_course = predicted_courses[max_prob_index]
+            current_course = pred_course
+
+            if not recursive_run:
+                if len(predicted_courses) > 1:
+                    # Want to save the others not used
+                    predicted_courses_copy = predicted_courses.copy()
+                    probabilities_list_copy = probabilities_list.copy()
+                    predicted_courses_copy.pop(max_prob_index)
+                    probabilities_list_copy = np.delete(probabilities_list_copy, max_prob_index)
+
+                    for i in range(len(probabilities_list_copy)):
+                        if probabilities_list_copy[i] > 0.1:
+                            new_pred_point = predict_next_point(predicted_courses_copy[i], average_distance, current_point)
+                            new_point_list = self.iterative_path_prediction(new_pred_point, r_c, K, recursive_run=True)
+                            self.point_dict[f"Point {self.recursive_counter}_{i}"] = point_list + new_point_list
+
+                            with open(f"test.txt", "a") as f:
+                                f.write(f"Iteration {k}, predicted_courses = {predicted_courses_copy[i]}, predicted_probs = {probabilities_list_copy[i]} \n")
+                                temp_pred_point = predict_next_point(predicted_courses_copy[i], average_distance, current_point)
+                                f.write(f"Predicted point = {temp_pred_point} \n")
+                                # Do the list to str
+                                str_point_list = str(point_list)
+                                f.write(str_point_list)
+                                f.write("\n")
+                            
+
+                        
 
             current_point = predict_next_point(pred_course, average_distance, current_point)
             if not check_point_within_bounds(current_point):
                 break
-            self.point_list.append(current_point[:2])
+            point_list.append(current_point[:2])
 
             if self.plot_histogram:
-                if choice == 0 or choice == 1:
-                    plot_histogram(data, gmm, self.point_list, self.track_id, save_plot=True)
-                elif choice == 1:
-                    plot_histogram(data, gmm, self.point_list, self.track_id, sim=similarities, weight=weighted_scores, save_plot=True)
+                plot_histogram_2(data, gmm, point_list, self.track_id, predicted_courses, probabilities_list, save_plot=True)
 
             print("\n")
-        self.point_list.append(current_point[2:4])
-        return self.point_list
+        point_list.append(current_point[2:4])
+        return point_list
 
     def run_prediction(self, initial_point):
         pred_paths = self.iterative_path_prediction(initial_point, self.r_c, self.K)
@@ -169,56 +186,25 @@ class NCDM:
         if self.compare_to_track:
             plot_single_vessel_track(ax, self.track, origin_x, origin_y, legend_elements, self.track_id, save_plot=True)
 
-    def calculate_root_mean_square_error(self):
-        # Can only be called after run_prediction
-        try:
-            pred_path = self.point_list
-            actual_path = self.track
-        except:
-            print("No path found")
-            return None
-        error = 0
-        # pred_path = np.load("npy_files/points_list.npy")
-        # actual_path = np.load("npy_files/track.npy")
-        actual_path = [point[:2] for point in actual_path]
-        
-
-        if len(pred_path) != len(actual_path):
-            # choose the shortest path
-            if len(pred_path) > len(actual_path):
-                pred_path = pred_path[:len(actual_path)]
-            else:
-                actual_path = actual_path[:len(pred_path)]
-
-        error = 0
-        for i in range(len(pred_path)):
-            # print(f"pred path {pred_path[i]}")
-            # print(f"actual path {actual_path[i]}")
-            error += (pred_path[i][0] - actual_path[i][0])**2 + (pred_path[i][1] - actual_path[i][1])**2
-            # print("\n")
-        error = np.sqrt(error / len(pred_path))
-        print(f"Root mean square error: {error}")
-
-        fig, ax = plt.subplots()
-        ax.plot([point[0] for point in pred_path], [point[1] for point in pred_path],"-o", label="Predicted path")
-        ax.plot([point[0] for point in actual_path], [point[1] for point in actual_path],"-o", label="Actual path")
-        ax.legend()
-        plt.show()
-        # return error
+        np.save(f"npy_files/predicted_paths.npy", self.point_dict)
+        # for key, value in self.point_dict.items():
+        #     ax, origin_x, origin_y, legend_elements = plot_predicted_path(ax, value, initial_point, self.r_c, self.K, origin_x, origin_y,
+        #                     legend_elements, save_plot=False, color='r')
 
 if __name__ == '__main__':
     path_predictor = NCDM('npy_files/X_B.npy')
     print(path_predictor.num_tracks)
-    # # for i in range(path_predictor.num_tracks):
-    # #     initial_point = path_predictor.find_track(i)
-    # #     path_predictor.run_prediction(initial_point)
 
-    initial_point = path_predictor.find_track(6)        # 5
+    # for i in range(path_predictor.num_tracks):
+    #     initial_point = path_predictor.find_track(i)
+    #     path_predictor.run_prediction(initial_point)
+
+    initial_point = path_predictor.find_track(0)        # 5
     path_predictor.run_prediction(initial_point)
-    path_predictor.calculate_root_mean_square_error()
-    # np.save("npy_files/points_list.npy", path_predictor.point_list)
-    # np.save("npy_files/track.npy", path_predictor.track)
-    # # # initial_point = [-23, -105]
-    # # # random_angle = -10
-    # # # initial_point = find_initial_points(initial_point, random_angle)
-    
+
+    # # initial_point = [-23, -105]
+    # # random_angle = -10
+    # # initial_point = find_initial_points(initial_point, random_angle)
+
+    filename = "npy_files/predicted_paths.npy"
+    plot_recursive_paths(filename)

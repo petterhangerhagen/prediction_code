@@ -84,7 +84,8 @@ def plot_single_vessel_track(ax, track, origin_x, origin_y, legend_elements, tra
     if save_plot:
         save_path = make_new_directory()
         if track_id is not None:
-            save_name = f"Track_{track_id}"
+            now_time = datetime.datetime.now().strftime("%H,%M,%S")
+            save_name = f"Track_{track_id}_plot({now_time}).png"
             save_path = os.path.join(save_path, save_name)
         else:
             now_time = datetime.datetime.now().strftime("%H,%M,%S")
@@ -194,7 +195,7 @@ def occupancy_grid_to_map(ax):
     ax.grid(True)
     return ax, origin_x, origin_y
 
-def plot_histogram(data, gmm, pred_path,track_id, save_plot=False):
+def plot_histogram(data, gmm, pred_path,track_id, sim=None, weight=None, save_plot=False):
     fig2, (ax1,ax2) = plt.subplots(1,2,figsize=(11, 7.166666))
 
     # plot the predicted path
@@ -224,16 +225,36 @@ def plot_histogram(data, gmm, pred_path,track_id, save_plot=False):
     txt_means = ""
     txt_prob = ""
     for (mean,prob) in zip(means,probs):
-        if prob < 0.1:
-            continue
+        # if prob < 0.1:
+        #     continue
         txt_means += f"{mean:.1f}, "
         txt_prob += f"{prob:.3f}, "
+
+    if sim is not None:
+        text_sim = "Sim: "
+        for (s,prob) in zip(sim,probs):
+            # if prob < 0.1:
+            #     continue
+            text_sim += f"{s:.3f}, "
+    else:
+        text_sim = ""
+
+    if weight is not None:
+        text_weight = "W-score: "
+        for (w,prob) in zip(weight,probs):
+            # if prob < 0.1:
+            #     continue
+            text_weight += f"{w:.3f}, "
+    else:
+        text_weight = ""
 
 
     # Adding useful information to the plot
     text = f"{gmm.n_components} components, {len(data)} samples\n"
     text += f"Means: {txt_means}\n"
-    text += f"Probs: {txt_prob}"
+    text += f"Probs: {txt_prob}\n"
+    text += f"{text_sim}\n"
+    text += f"{text_weight}"
     ax1.text(0.0, -0.3, text, transform=ax1.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='grey', alpha=0.15))
     plt.tight_layout() 
 
@@ -253,3 +274,131 @@ def plot_histogram(data, gmm, pred_path,track_id, save_plot=False):
     plt.close(fig2)
     # temp_in = input("Press enter to continue")
 
+def plot_histogram_2(data, gmm, pred_path,track_id, predicted_courses, probabilities_list, sim=None, weight=None, save_plot=False):
+    fig2, (ax1,ax2) = plt.subplots(1,2,figsize=(11, 7.166666))
+
+    # plot the predicted path
+    ax1, origin_x, origin_y = occupancy_grid_to_map(ax1)
+    point_array = np.array(pred_path)
+    xs = point_array[:, 0] + origin_x
+    ys = point_array[:, 1] + origin_y
+    ax1.plot(xs, ys, color='black', linewidth=2)
+    ax1.plot(point_array[0, 0] + origin_x, point_array[0, 1] + origin_y, marker='o', color='black', markersize=10)
+
+
+    # plot the histogram
+    ax2.hist(data, bins=100, density=True, alpha=0.6, color='g')
+    x = np.linspace(-180, 180, 1000)
+    for i in range(gmm.n_components):
+        ax2.plot(x, norm.pdf(x, gmm.means_[i, 0], np.sqrt(gmm.covariances_[i, 0, 0])),
+                label=f'Component {i+1}')
+
+
+    ax2.set_xlabel('Course [degrees]', fontsize=15)
+    ax2.set_ylabel('Density', fontsize=15)
+    ax2.legend(['Data', 'Predicted'], fontsize=12)
+
+    means = gmm.means_
+    probs = gmm.weights_
+    means = np.array(means).reshape(-1)
+    txt_means = ""
+    txt_prob = ""
+    for (mean,prob) in zip(means,probs):
+        # if prob < 0.1:
+        #     continue
+        txt_means += f"{mean:.1f}, "
+        txt_prob += f"{prob:.3f}, "
+    txt_means_2 = ""
+    txt_prob_2 = ""
+    for i in range(len(predicted_courses)):
+        txt_means_2 += f"{predicted_courses[i]:.1f}, "
+        txt_prob_2 += f"{probabilities_list[i]:.3f}, "
+
+    # if sim is not None:
+    #     text_sim = "Sim: "
+    #     for (s,prob) in zip(sim,probs):
+    #         # if prob < 0.1:
+    #         #     continue
+    #         text_sim += f"{s:.3f}, "
+    # else:
+    #     text_sim = ""
+
+    # if weight is not None:
+    #     text_weight = "W-score: "
+    #     for (w,prob) in zip(weight,probs):
+    #         # if prob < 0.1:
+    #         #     continue
+    #         text_weight += f"{w:.3f}, "
+    # else:
+    #     text_weight = ""
+
+
+    # Adding useful information to the plot
+    text = f"{gmm.n_components} components, {len(data)} samples\n"
+    text += f"Means: {txt_means}\n"
+    text += f"Probs: {txt_prob}\n"
+    text += f"{txt_means_2}\n"
+    text += f"{txt_prob_2}"
+    ax1.text(0.0, -0.3, text, transform=ax1.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='grey', alpha=0.15))
+    plt.tight_layout() 
+
+    plt.tight_layout()
+    # Save plot to file
+    if save_plot:
+        if track_id is not None:
+            dir_name = f"Histograms/Track_{track_id}"
+        else:
+            dir_name = f"Histograms/no_track_id"
+        save_path = make_new_directory(dir_name=dir_name,include_date=False)
+        now_time = datetime.datetime.now().strftime("%H,%M,%S")
+        save_path = os.path.join(save_path, f'Histogram_({now_time}).png')
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+    # plt.show()
+    plt.close(fig2)
+    # temp_in = input("Press enter to continue")
+
+def plot_close_neigbors(neighbors):
+    fig, ax = plt.subplots(figsize=(11, 7.166666))
+    count = 0
+    print(f"len(neighbours): {len(neighbors)}")
+    for key,value in neighbors.items():
+        for sub_track in value:
+            # print(sub_track)
+            # print([sub_track[0],sub_track[2],sub_track[4]])
+            course = calculate_course(sub_track[2:4],sub_track[4:6])
+            
+            if -10 < course < 30:
+                x = [sub_track[0],sub_track[2],sub_track[4]]
+                y = [sub_track[1],sub_track[3],sub_track[5]]
+                start = [sub_track[0],sub_track[1]]
+                ax.plot(x,y)
+                ax.scatter(x,y)
+                ax.plot(start[0],start[1], marker='o', color='black', markersize=10)
+
+                count += 1
+    print(f"Number of close neighbors: {len(neighbors)}")
+    print(f"Count: {count}")
+    plt.show()
+    plt.close(fig)
+
+def calculate_course(p1, p2):
+    """Calculate the course from point p1 to p2."""
+    dx = p2[0] - p1[0]
+    dy = p2[1] - p1[1]
+    return np.degrees(np.arctan2(dx, dy))
+
+def plot_recursive_paths(npy_file):
+    data = np.load(npy_file,allow_pickle='TRUE').item()
+    
+    for key, value in data.items():
+        fig, ax = plt.subplots(figsize=(11, 7.166666))
+        ax, origin_x, origin_y = occupancy_grid_to_map(ax)
+        point_list = value
+        point_array = np.array(point_list)
+        xs = point_array[:, 0] + origin_x
+        ys = point_array[:, 1] + origin_y
+        ax.plot(xs, ys, linewidth=2)
+        # ax.plot(point_array[0, 0], point_array[0, 1], marker='o', markersize=10)
+    plt.show()
+    plt.close(fig)

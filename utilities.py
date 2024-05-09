@@ -270,3 +270,46 @@ def add_CVM(closest_neighbours, point):
         closest_neighbours.setdefault(-1, []).append(constant_velocity_model(point))
     return closest_neighbours
 
+def check_similarites_between_tracks(path1,path2):
+    path1 = np.array(path1)
+    path2 = np.array(path2[1])
+
+    # distance_count = 0
+    # for (point1,point2) in zip(path1,path2):
+    #     distance = np.linalg.norm(point1[2:] - point2[2:])
+    #     distance_count += distance
+    # # print(f"Total distance between the paths: {distance_count}")
+    # if distance_count < 20:
+    #     return True
+    # else:
+    #     return False
+
+    new_point = path1[-1][2:]
+    # Check endpoint
+    for point in path2:
+        distance = np.linalg.norm(new_point - point[2:])
+        if distance < 1:
+            return True
+    return False
+    # if distance < 5:
+    #     return True
+    # else:
+    #     return False
+
+
+def check_similarites_between_tracks_2(path1,path2):
+    path1 = np.array(path1)
+    path2 = np.array(path2)
+
+    if len(path1) != len(path2):
+        return False
+    
+    for (point1,point2) in zip(path1,path2):
+        distance = np.linalg.norm(point1[2:] - point2[2:])
+        if distance > 5:
+            return False
+    return True
+
+    # print("Length of path1 and path2")
+    # print(len(path1),len(path2))
+    # return True
