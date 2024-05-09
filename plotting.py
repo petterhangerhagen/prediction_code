@@ -72,11 +72,15 @@ def plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, save_plot=False):
     return ax, origin_x, origin_y, legend_elements
 
 def plot_single_vessel_track(ax, track, origin_x, origin_y, legend_elements, track_id, save_plot=False):
-    x = []
-    y = []
-    for i in range(len(track)):
-        x.append(track[i][0] + origin_x)
-        y.append(track[i][1] + origin_y)
+    # x = []
+    # y = []
+    # for i in range(len(track)):
+    #     x.append(track[i][0] + origin_x)
+    #     y.append(track[i][1] + origin_y)
+    track = np.array(track)
+    x = track[:, 0] + origin_x
+    y = track[:, 1] + origin_y
+
     # Plot the track
     c = '#2ca02c'  # Green
     ax.plot(x,y, color=c, linewidth=2)
@@ -137,7 +141,7 @@ def plot_predicted_path_new(ax, pred_paths, origin_x, origin_y, legend_elements)
     # plt.savefig(save_path, dpi=300)
     # print(f"Plot saved to {save_path}")
 
-def plot_predicted_path(ax, point_list, initial_point, r_c, interations, origin_x, origin_y, legend_elements, save_plot=False):
+def plot_predicted_path(ax, point_list, initial_point, r_c, interations,rmse, origin_x, origin_y, legend_elements, save_plot=False):
     plot_bouns = False
     if plot_bouns:
         vertecis = [[-110, -110], [-80, -130], [-30, -115], [0, -120], [0, -90], [40, -60], [60, -50], [90, -32], [80, -20], [70, -10], [40, -8], [-20, -6], [-40, -25], [-52, -58], [-60, -68], [-110, -110]]
@@ -165,7 +169,7 @@ def plot_predicted_path(ax, point_list, initial_point, r_c, interations, origin_
 
     # Adding useful information to the plot
     text = f"Initial point: [{initial_point[0]:.1f},{initial_point[1]:.1f}], Initial angle: {inital_angle:.1f}, "
-    text += f"Search radius: {r_c}, Iterations: {interations}"
+    text += f"Search radius: {r_c}, Iterations: {interations}, RMSE: {rmse:.3f}\n"
     ax.text(0.0, -0.13, text, transform=ax.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='grey', alpha=0.15))
     plt.tight_layout() 
     

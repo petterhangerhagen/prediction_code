@@ -1,8 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-from sklearn.mixture import GaussianMixture
-from plotting import start_plot, plot_all_vessel_tracks, plot_predicted_path, plot_single_vessel_track, plot_histogram, plot_close_neigbors
+from plotting import (
+    start_plot, 
+    plot_all_vessel_tracks, 
+    plot_predicted_path, 
+    plot_single_vessel_track, 
+    plot_histogram, 
+    plot_close_neigbors
+)
 from utilities import (
     generate_random_point_and_angle_in_polygon,
     check_point_within_bounds,
@@ -29,6 +35,7 @@ class NCDM:
         self.r_c = 10
         self.K = 100
         self.track_id = None
+        self.course_diff = 90
 
     def find_track(self, track_id):
         self.track_id = track_id
@@ -95,15 +102,11 @@ class NCDM:
     def remove_courses_outside_range(self, courses, current_course, probabilities_list):
         normalized_course = (np.array(courses) + 180) % 360 - 180
         normalized_course = list(normalized_course)
-        print(f"Normalized courses: {normalized_course}")
-        # print("Courses before filtering, After filtering")
-        # for (course1,course2) in zip(courses,normalized_course):
-        #     print(f"{course1:.2f}, {course2:.2f}")
         new_courses = []
         new_probabilities = []
         for course in normalized_course:
             diff = abs(course - current_course)
-            if diff < 90:
+            if diff < self.course_diff:
                 new_courses.append(course)
                 new_probabilities.append(probabilities_list[normalized_course.index(course)])
         if not new_courses:
@@ -117,7 +120,7 @@ class NCDM:
         current_point = initial_point
         current_course = calculate_course(current_point[:2], current_point[2:4])
         for k in range(K):
-            print(f"Iteration {k}")
+            print(f"Iteration {k}, track id: {self.track_id}")
             print(f"Current point: {current_point[0]:.2f}, {current_point[1]:.2f}")
             current_course = calculate_course(current_point[:2], current_point[2:4])
             neighbours = self.find_closest_neighbours(current_point, r_c)
@@ -140,7 +143,8 @@ class NCDM:
             if average_distance < 2:
                 print("Average distance too low")
                 break
-
+            
+            print(f"Predicted course: {pred_course:.2f}")
             current_point = predict_next_point(pred_course, average_distance, current_point)
             if not check_point_within_bounds(current_point):
                 break
@@ -155,10 +159,12 @@ class NCDM:
 
     def run_prediction(self, initial_point):
         pred_paths = self.iterative_path_prediction(initial_point, self.r_c, self.K)
+        self.calculate_root_mean_square_error()
+
         ax, origin_x, origin_y = start_plot()
         ax, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax, self.X_B, origin_x, origin_y,
                                                                          save_plot=False)
-        ax, origin_x, origin_y, legend_elements = plot_predicted_path(ax, pred_paths, initial_point, self.r_c, self.K, origin_x, origin_y,
+        ax, origin_x, origin_y, legend_elements = plot_predicted_path(ax, pred_paths, initial_point, self.r_c, self.K, self.rmse, origin_x, origin_y,
                             legend_elements, save_plot=False)
         if self.compare_to_track:
             plot_single_vessel_track(ax, self.track, origin_x, origin_y, legend_elements, self.track_id, save_plot=True)
@@ -172,8 +178,8 @@ class NCDM:
             print("No path found")
             return None
         error = 0
-        rmse = RMSE(actual_path, pred_path, plot_statement=False)
-        print(f"Root mean square error: {rmse}")
+        self.rmse = RMSE(actual_path, pred_path, plot_statement=False)
+        print(f"Root mean square error: {self.rmse}")
 
 
 def main():
@@ -199,10 +205,12 @@ def main2():
     path_predictor = NCDM('npy_files/X_B.npy')
     num_of_tracks = path_predictor.num_tracks
 
-    for i in range(10):
+    count_matrix = CountMatrix(reset=True)
+
+    for i in range(5):
         initial_point = path_predictor.find_track(i)
         path_predictor.run_prediction(initial_point)
-        path_predictor.calculate_root_mean_square_error()
+        count_matrix.check_start_and_stop_prediction(path_predictor.point_list[0], path_predictor.point_list[-1])
         # plt.show()
 
 if __name__ == '__main__':

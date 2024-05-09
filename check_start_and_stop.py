@@ -188,7 +188,7 @@ class CountMatrix:
                     self.average_length_matrix[k][j] = int(self.average_length_matrix[k][j]/self.count_matrix[k][j])
         np.save(self.average_length_matrix_filename, self.average_length_matrix)
 
-    def check_stop(self, first_pred_point, last_pred_point, start_rectangle_name):
+    def check_start_and_stop_prediction(self, first_pred_point, last_pred_point):
         rectangleA = RectangleA()
         rectangleB = RectangleB()
         rectangleC = RectangleC()
@@ -206,7 +206,8 @@ class CountMatrix:
             if rectangle.start_or_stop(x_last,y_last):
                 stop_rectangle = rectangle
                 print(f"Stop in {stop_rectangle}")
-            if start_rectangle_name == rectangle.name:
+
+            if rectangle.start_or_stop(x_first,y_first):
                 start_rectangle = rectangle
                 print(f"Start in {start_rectangle}")
                 
@@ -214,9 +215,22 @@ class CountMatrix:
             print("No stop rectangle")
             self.unvalidated_track += 1
 
-        if stop_rectangle is not None and start_rectangle is not None:
+        # if stop_rectangle is not None and start_rectangle is not None:
+        #     self.count_matrix[start_rectangle.index][stop_rectangle.index] += 1
+        #     np.save(self.file_name, self.count_matrix)
+
+        if start_rectangle is not None and stop_rectangle is not None:
             self.count_matrix[start_rectangle.index][stop_rectangle.index] += 1
+            if start_rectangle.index == stop_rectangle.index:
+                self.number_of_tracks_on_diagonal += 1
             np.save(self.file_name, self.count_matrix)
+        else:
+            self.unvalidated_track += 1
+
+        print(self.count_matrix)
+        print(f"Number on the diagonal: {self.number_of_tracks_on_diagonal}")
+        print(f"Unvalid tracks: {self.unvalidated_track}")
+
 
 def plot_rectangles():
     rectangleA = RectangleA()
