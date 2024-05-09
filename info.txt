@@ -1,0 +1,3 @@
+Number of tracks: 0
+Number on the diagonal: 199
+Unvalid tracks: 163

@@ -228,6 +228,10 @@ class CountMatrix:
             self.unvalidated_track += 1
 
         print(self.count_matrix)
+        with open("info.txt", "w") as file:
+            file.write(f"Number of tracks: {self.number_of_tracks}\n")
+            file.write(f"Number on the diagonal: {self.number_of_tracks_on_diagonal}\n")
+            file.write(f"Unvalid tracks: {self.unvalidated_track}\n")
         print(f"Number on the diagonal: {self.number_of_tracks_on_diagonal}")
         print(f"Unvalid tracks: {self.unvalidated_track}")
 

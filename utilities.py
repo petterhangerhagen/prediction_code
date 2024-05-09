@@ -323,6 +323,10 @@ def RMSE(original_track, predicted_track, plot_statement=False):
     # Find the index of the point in the predicted track that is closest to the end point of the original track
     index_to_cut = np.argmin(distances)
 
+    if index_to_cut < 5:
+        # If the distance exceeds the threshold, do not cut the predicted track
+        index_to_cut = len(predicted_track) - 1
+    
     # Cut the predicted track short
     predicted_track = predicted_track[:index_to_cut+1]
 

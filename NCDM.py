@@ -120,7 +120,7 @@ class NCDM:
         current_point = initial_point
         current_course = calculate_course(current_point[:2], current_point[2:4])
         for k in range(K):
-            print(f"Iteration {k}, track id: {self.track_id}")
+            print(f"Iteration {k}, track id: {self.track_id} of {self.num_tracks}")
             print(f"Current point: {current_point[0]:.2f}, {current_point[1]:.2f}")
             current_course = calculate_course(current_point[:2], current_point[2:4])
             neighbours = self.find_closest_neighbours(current_point, r_c)
@@ -207,11 +207,12 @@ def main2():
 
     count_matrix = CountMatrix(reset=True)
 
-    for i in range(5):
+    for i in range(num_of_tracks):
         initial_point = path_predictor.find_track(i)
         path_predictor.run_prediction(initial_point)
         count_matrix.check_start_and_stop_prediction(path_predictor.point_list[0], path_predictor.point_list[-1])
         # plt.show()
+        plt.close('all')
 
 if __name__ == '__main__':
     main2()
