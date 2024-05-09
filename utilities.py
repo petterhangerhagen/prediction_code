@@ -145,13 +145,13 @@ def generate_random_point_and_angle_in_polygon(area, X_B, plot=False):
 def make_new_directory(dir_name="Results", include_date=True):
     wokring_directory = os.getcwd()
     root = os.path.join(wokring_directory, dir_name)
-    print(f"Root directory: {root}")
+    # print(f"Root directory: {root}")
 
     if not os.path.exists(root):
         os.mkdir(root)
-        print(f"Directory {root} created")
-    else:
-        print(f"Directory {root} already exists")
+        # print(f"Directory {root} created")
+    # else:
+    #     print(f"Directory {root} already exists")
 
     if include_date:
         todays_date = datetime.datetime.now().strftime("%d-%b")
@@ -295,7 +295,6 @@ def check_similarites_between_tracks(path1,path2):
     #     return True
     # else:
     #     return False
-
 
 def check_similarites_between_tracks_2(path1,path2):
     path1 = np.array(path1)

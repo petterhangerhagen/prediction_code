@@ -72,8 +72,11 @@ def plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, save_plot=False):
     return ax, origin_x, origin_y, legend_elements
 
 def plot_single_vessel_track(ax, track, origin_x, origin_y, legend_elements, track_id, save_plot=False):
-    x = track[:, 0] + origin_x
-    y = track[:, 1] + origin_y
+    x = []
+    y = []
+    for i in range(len(track)):
+        x.append(track[i][0] + origin_x)
+        y.append(track[i][1] + origin_y)
     # Plot the track
     c = '#2ca02c'  # Green
     ax.plot(x,y, color=c, linewidth=2)
@@ -209,7 +212,7 @@ def plot_histogram(data, gmm, pred_path,track_id, sim=None, weight=None, save_pl
 
     # plot the histogram
     ax2.hist(data, bins=100, density=True, alpha=0.6, color='g')
-    x = np.linspace(-180, 180, 1000)
+    x = np.linspace(-360, 360, 1000)
     for i in range(gmm.n_components):
         ax2.plot(x, norm.pdf(x, gmm.means_[i, 0], np.sqrt(gmm.covariances_[i, 0, 0])),
                 label=f'Component {i+1}')
@@ -217,7 +220,7 @@ def plot_histogram(data, gmm, pred_path,track_id, sim=None, weight=None, save_pl
 
     ax2.set_xlabel('Course [degrees]', fontsize=15)
     ax2.set_ylabel('Density', fontsize=15)
-    ax2.legend(['Data', 'Predicted'], fontsize=12)
+    ax2.legend(fontsize=12)
 
     means = gmm.means_
     probs = gmm.weights_

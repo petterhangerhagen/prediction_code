@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 from sklearn.mixture import GaussianMixture
 from plotting import start_plot, plot_all_vessel_tracks, plot_predicted_path, plot_single_vessel_track, plot_histogram, plot_close_neigbors
 from utilities import (
@@ -14,7 +15,7 @@ from utilities import (
 )
 from check_start_and_stop import CountMatrix
 from GMM_components import get_GMM, get_GMM_modified
-
+from RMSE import RMSE
 
 class NCDM:
     def __init__(self, data_file):
@@ -34,6 +35,7 @@ class NCDM:
         self.track_id = track_id
         self.track = self.X_B[track_id]
         track_initial_point = self.track[0][:4]
+        self.track = [track[:2] for track in self.track]
         self.compare_to_track = True
         return track_initial_point
 
@@ -53,17 +55,26 @@ class NCDM:
         distances = []
         total_distance = 0
         count = 0
+        data2 = []
         for key,values in neighbours.items():
             for sub_track in values:
                 course = calculate_course(sub_track[2:4], sub_track[4:6])
                 courses.append(course)
                 _distance = calculate_distance(sub_track[2:4], sub_track[4:6])
                 distances.append(_distance)
+                data2.append([course, _distance])
                 total_distance += _distance
                 count += 1
+        # fig4, ax4 = plt.subplots()
+        # ax4.hist(distances, bins=100)
+        # plt.pause(2)
+        # plt.close(fig4)
         average_distance = total_distance / count
         courses = np.array(courses).reshape(-1, 1)
-        data = np.array(courses)
+        temp_course_1 = np.array(courses) % 360
+        temp_course_2 = temp_course_1 - 360
+        course_complete = np.concatenate((temp_course_1, temp_course_2))
+        data = np.array(course_complete)
         if len(data) < 2:
             predicted_course = data[0]
             probabilities_list = [1.0]
@@ -72,6 +83,14 @@ class NCDM:
             probabilities_list = gmm.weights_
             predicted = gmm.means_
             predicted_course = [course[0] for course in predicted]
+
+            # gmm_distance = GaussianMixture(n_components=2).fit(np.array(distances).reshape(-1, 1))
+            # distance_probabilities = gmm_distance.weights_
+            # distance_predicted = gmm_distance.means_
+            # distance_predicted = [distance[0] for distance in distance_predicted]
+            # print(f"Predicted distance: {distance_predicted}")
+            # print(f"Distance probabilities: {distance_probabilities}")
+            # print(f"Difference in distance: {average_distance - distance_predicted[0]}")
         return data,gmm, predicted_course, average_distance, probabilities_list
 
     def calculate_similarity(self, course, predicted_courses):
@@ -96,13 +115,33 @@ class NCDM:
                 modified_similarities[i] = 0
         return modified_similarities
 
+    def remove_courses_outside_range(self, courses, current_course, probabilities_list):
+        normalized_course = (np.array(courses) + 180) % 360 - 180
+        normalized_course = list(normalized_course)
+        print(f"Normalized courses: {normalized_course}")
+        # print("Courses before filtering, After filtering")
+        # for (course1,course2) in zip(courses,normalized_course):
+        #     print(f"{course1:.2f}, {course2:.2f}")
+        new_courses = []
+        new_probabilities = []
+        for course in normalized_course:
+            diff = abs(course - current_course)
+            if diff < 90:
+                new_courses.append(course)
+                new_probabilities.append(probabilities_list[normalized_course.index(course)])
+        if not new_courses:
+            new_courses = normalized_course
+            new_probabilities = probabilities_list
+
+        return new_courses, new_probabilities
+
     def iterative_path_prediction(self, initial_point, r_c, K):
         self.point_list = [initial_point[:2]]
         current_point = initial_point
         current_course = calculate_course(current_point[:2], current_point[2:4])
         for k in range(K):
             print(f"Iteration {k}")
-            print(f"Current point: {current_point}")
+            print(f"Current point: {current_point[2:]}")
             current_course = calculate_course(current_point[:2], current_point[2:4])
             neighbours = self.find_closest_neighbours(current_point, r_c)
             if not neighbours:
@@ -115,27 +154,15 @@ class NCDM:
                 pred_course = predicted_courses[max_prob_index]
                 current_course = pred_course
             elif choice == 1:
-                # print(f"Current course: {current_course:.2f}")
-                courses_to_remove = []
-                for pred_course in predicted_courses:
-                    # print("---------------------------")
-                    # print(f"Predicted course: {pred_course:.2f}")
-                    # print(f"{np.abs(pred_course - current_course):.2f}")
-                    if (np.abs(pred_course - current_course) > 70):
-                        # print(f"Removing course: {pred_course:.2f}")
-                        courses_to_remove.append(pred_course)
-                        # print(f"{np.abs(pred_course - current_course):.2f}")
-                        # probabilities_list = np.delete(probabilities_list, predicted_courses.index(pred_course))
-                        # predicted_courses.remove(pred_course)
-                for course in courses_to_remove:
-                    probabilities_list = np.delete(probabilities_list, predicted_courses.index(course))
-                    predicted_courses.remove(course)
-                # print(f"Remaining courses: {predicted_courses}")
-                # print("#########################")
-                max_prob_index = np.argmax(probabilities_list)
-                pred_course = predicted_courses[max_prob_index]
-                # print(f"Predicted course: {pred_course}")
-                # print(f"Current course: {current_course}")
+                print("Predicted courses: ", predicted_courses)
+                predicted_courses_mod, probabilities_list_mod = self.remove_courses_outside_range(predicted_courses, current_course, probabilities_list)
+                print(f"Current course: {current_course:.2f}")
+                print(f"Predicted courses: {predicted_courses_mod}")
+                print(f"Probabilities: {probabilities_list}")
+                print("----------------------")
+                max_prob_index = np.argmax(probabilities_list_mod)
+                pred_course = predicted_courses_mod[max_prob_index]
+                print(f"Predicted course: {pred_course:.2f}")
                 current_course = pred_course
             elif choice == 2:
                 similarities = self.calculate_similarity(current_course, predicted_courses)
@@ -144,6 +171,9 @@ class NCDM:
                 pred_course = predicted_courses[max_score_index]
                 current_course = pred_course
 
+            if average_distance < 2:
+                print("Average distance too low")
+                break
             current_point = predict_next_point(pred_course, average_distance, current_point)
             if not check_point_within_bounds(current_point):
                 break
@@ -178,47 +208,24 @@ class NCDM:
             print("No path found")
             return None
         error = 0
-        # pred_path = np.load("npy_files/points_list.npy")
-        # actual_path = np.load("npy_files/track.npy")
-        actual_path = [point[:2] for point in actual_path]
-        
-
-        if len(pred_path) != len(actual_path):
-            # choose the shortest path
-            if len(pred_path) > len(actual_path):
-                pred_path = pred_path[:len(actual_path)]
-            else:
-                actual_path = actual_path[:len(pred_path)]
-
-        error = 0
-        for i in range(len(pred_path)):
-            # print(f"pred path {pred_path[i]}")
-            # print(f"actual path {actual_path[i]}")
-            error += (pred_path[i][0] - actual_path[i][0])**2 + (pred_path[i][1] - actual_path[i][1])**2
-            # print("\n")
-        error = np.sqrt(error / len(pred_path))
-        print(f"Root mean square error: {error}")
-
-        fig, ax = plt.subplots()
-        ax.plot([point[0] for point in pred_path], [point[1] for point in pred_path],"-o", label="Predicted path")
-        ax.plot([point[0] for point in actual_path], [point[1] for point in actual_path],"-o", label="Actual path")
-        ax.legend()
-        plt.show()
-        # return error
+        rmse = RMSE(actual_path, pred_path, plot_statement=False)
+        print(f"Root mean square error: {rmse}")
 
 if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Please provide a track id")
+        track_id = 0
+    else:
+        track_id = int(sys.argv[1])
+        
     path_predictor = NCDM('npy_files/X_B.npy')
     print(path_predictor.num_tracks)
-    # # for i in range(path_predictor.num_tracks):
-    # #     initial_point = path_predictor.find_track(i)
-    # #     path_predictor.run_prediction(initial_point)
+    path_predictor.plot_histogram = False
 
-    initial_point = path_predictor.find_track(6)        # 5
+    initial_point = path_predictor.find_track(track_id)
     path_predictor.run_prediction(initial_point)
     path_predictor.calculate_root_mean_square_error()
+
     # np.save("npy_files/points_list.npy", path_predictor.point_list)
     # np.save("npy_files/track.npy", path_predictor.track)
-    # # # initial_point = [-23, -105]
-    # # # random_angle = -10
-    # # # initial_point = find_initial_points(initial_point, random_angle)
-    
+ 

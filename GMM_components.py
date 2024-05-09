@@ -39,12 +39,12 @@ def get_GMM_modified(X, max_comps, margin):
     k = 2
     found = False
     # Fit initial GMM with 1 component
-    GMM = GaussianMixture(n_components=1).fit(X)
+    GMM = GaussianMixture(n_components=1,random_state=0).fit(X)
     
     while k <= max_comps:
         prev_GMM = GMM
         try:
-            GMM = GaussianMixture(n_components=k).fit(X)
+            GMM = GaussianMixture(n_components=k,random_state=0).fit(X)
         except Exception as e:
             print(f"Failed to fit GMM with {k} components: {e}")
             GMM = prev_GMM
@@ -64,8 +64,9 @@ def get_GMM_modified(X, max_comps, margin):
 
         k += 1
     
-    if not found:
-        GMM = GaussianMixture(n_components=3).fit(X)
+    # if not found:
+    #     print("No GMM found, using default")
+    #     GMM = GaussianMixture(n_components=3,random_state=0).fit(X)
 
     print(f"Number of components: {GMM.n_components}")
     return GMM
