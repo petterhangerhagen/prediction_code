@@ -11,11 +11,11 @@ from utilities import (
     eucldian_distance,
     find_initial_points,
     predict_next_point,
-    add_CVM
+    add_CVM,
+    RMSE
 )
 from check_start_and_stop import CountMatrix
 from GMM_components import get_GMM, get_GMM_modified
-from RMSE import RMSE
 
 class NCDM:
     def __init__(self, data_file):
@@ -26,7 +26,6 @@ class NCDM:
         self.CVM = False
         self.compare_to_track = False
         self.plot_histogram = False
-
         self.r_c = 10
         self.K = 100
         self.track_id = None
@@ -92,29 +91,7 @@ class NCDM:
             # print(f"Distance probabilities: {distance_probabilities}")
             # print(f"Difference in distance: {average_distance - distance_predicted[0]}")
         return data,gmm, predicted_course, average_distance, probabilities_list
-
-    def calculate_similarity(self, course, predicted_courses):
-        similarities = np.abs(predicted_courses - course) % 360
-        similarities = np.minimum(similarities, 360 - similarities)
-        normalized_similarities = 1 - (similarities / 180.0)
-        return normalized_similarities
     
-    def calculate_similarity_new(self, course, predicted_courses):
-        similarities = np.abs(predicted_courses - course)
-        modified_similarities = np.zeros(len(similarities))
-        for i in range(len(similarities)):
-            if similarities[i] < 5:
-                modified_similarities[i] = 1
-            elif similarities[i] < 10:
-                modified_similarities[i] = 0.8
-            elif similarities[i] < 20:
-                modified_similarities[i] = 0.6
-            elif similarities[i] < 30:
-                modified_similarities[i] = 0.4
-            else:
-                modified_similarities[i] = 0
-        return modified_similarities
-
     def remove_courses_outside_range(self, courses, current_course, probabilities_list):
         normalized_course = (np.array(courses) + 180) % 360 - 180
         normalized_course = list(normalized_course)
@@ -141,11 +118,12 @@ class NCDM:
         current_course = calculate_course(current_point[:2], current_point[2:4])
         for k in range(K):
             print(f"Iteration {k}")
-            print(f"Current point: {current_point[2:]}")
+            print(f"Current point: {current_point[0]:.2f}, {current_point[1]:.2f}")
             current_course = calculate_course(current_point[:2], current_point[2:4])
             neighbours = self.find_closest_neighbours(current_point, r_c)
             if not neighbours:
                 break
+
             data, gmm, predicted_courses, average_distance, probabilities_list = self.compute_probabilistic_course(neighbours)
 
             choice = 1
@@ -154,37 +132,23 @@ class NCDM:
                 pred_course = predicted_courses[max_prob_index]
                 current_course = pred_course
             elif choice == 1:
-                print("Predicted courses: ", predicted_courses)
                 predicted_courses_mod, probabilities_list_mod = self.remove_courses_outside_range(predicted_courses, current_course, probabilities_list)
-                print(f"Current course: {current_course:.2f}")
-                print(f"Predicted courses: {predicted_courses_mod}")
-                print(f"Probabilities: {probabilities_list}")
-                print("----------------------")
                 max_prob_index = np.argmax(probabilities_list_mod)
                 pred_course = predicted_courses_mod[max_prob_index]
-                print(f"Predicted course: {pred_course:.2f}")
-                current_course = pred_course
-            elif choice == 2:
-                similarities = self.calculate_similarity(current_course, predicted_courses)
-                weighted_scores = similarities * np.array(probabilities_list)
-                max_score_index = np.argmax(weighted_scores)
-                pred_course = predicted_courses[max_score_index]
                 current_course = pred_course
 
             if average_distance < 2:
                 print("Average distance too low")
                 break
+
             current_point = predict_next_point(pred_course, average_distance, current_point)
             if not check_point_within_bounds(current_point):
                 break
             self.point_list.append(current_point[:2])
 
             if self.plot_histogram:
-                if choice == 0 or choice == 1:
-                    plot_histogram(data, gmm, self.point_list, self.track_id, save_plot=True)
-                elif choice == 1:
-                    plot_histogram(data, gmm, self.point_list, self.track_id, sim=similarities, weight=weighted_scores, save_plot=True)
-
+                plot_histogram(data, gmm, self.point_list, self.track_id, save_plot=True)
+                
             print("\n")
         self.point_list.append(current_point[2:4])
         return self.point_list
@@ -211,7 +175,8 @@ class NCDM:
         rmse = RMSE(actual_path, pred_path, plot_statement=False)
         print(f"Root mean square error: {rmse}")
 
-if __name__ == '__main__':
+
+def main():
     if len(sys.argv) < 2:
         print("Please provide a track id")
         track_id = 0
@@ -225,7 +190,20 @@ if __name__ == '__main__':
     initial_point = path_predictor.find_track(track_id)
     path_predictor.run_prediction(initial_point)
     path_predictor.calculate_root_mean_square_error()
+    plt.show()
 
     # np.save("npy_files/points_list.npy", path_predictor.point_list)
     # np.save("npy_files/track.npy", path_predictor.track)
  
+def main2():
+    path_predictor = NCDM('npy_files/X_B.npy')
+    num_of_tracks = path_predictor.num_tracks
+
+    for i in range(10):
+        initial_point = path_predictor.find_track(i)
+        path_predictor.run_prediction(initial_point)
+        path_predictor.calculate_root_mean_square_error()
+        # plt.show()
+
+if __name__ == '__main__':
+    main2()
