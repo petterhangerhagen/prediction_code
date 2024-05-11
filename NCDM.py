@@ -7,7 +7,9 @@ from plotting import (
     plot_predicted_path, 
     plot_single_vessel_track, 
     plot_histogram, 
-    plot_close_neigbors
+    plot_close_neigbors,
+    plot_histogram_distances,
+    plot_histogram_courses
 )
 from utilities import (
     generate_random_point_and_angle_in_polygon,
@@ -28,7 +30,7 @@ class NCDM:
         self.X_B = np.load(data_file, allow_pickle=True).item()
         self.num_tracks = len(self.X_B)
         self.gmm_components = 8
-        self.gmm_margin = 60
+        self.gmm_margin = 60 # 60
         self.CVM = False
         self.compare_to_track = False
         self.plot_histogram = False
@@ -56,7 +58,7 @@ class NCDM:
             closest_neighbours = add_CVM(closest_neighbours, point)
         return closest_neighbours
 
-    def compute_probabilistic_course(self, neighbours):
+    def compute_probabilistic_course(self, neighbours, iteration_num=0):
         courses = []
         distances = []
         total_distance = 0
@@ -71,10 +73,10 @@ class NCDM:
                 data2.append([course, _distance])
                 total_distance += _distance
                 count += 1
-        # fig4, ax4 = plt.subplots()
-        # ax4.hist(distances, bins=100)
-        # plt.pause(2)
-        # plt.close(fig4)
+        
+        # # Demonstation of distance distribution
+        # plot_histogram_distances(distances, self.point_list, self.X_B, track_id=self.track_id, iteration_num=iteration_num, save_plot=True)
+        
         average_distance = total_distance / count
         courses = np.array(courses).reshape(-1, 1)
         temp_course_1 = np.array(courses) % 360
@@ -90,13 +92,10 @@ class NCDM:
             predicted = gmm.means_
             predicted_course = [course[0] for course in predicted]
 
-            # gmm_distance = GaussianMixture(n_components=2).fit(np.array(distances).reshape(-1, 1))
-            # distance_probabilities = gmm_distance.weights_
-            # distance_predicted = gmm_distance.means_
-            # distance_predicted = [distance[0] for distance in distance_predicted]
-            # print(f"Predicted distance: {distance_predicted}")
-            # print(f"Distance probabilities: {distance_probabilities}")
-            # print(f"Difference in distance: {average_distance - distance_predicted[0]}")
+            # # Demonstation of modifed course distribution
+            # plot_histogram_courses(courses, gmm.n_components, self.point_list, self.X_B, track_id=self.track_id, iteration_num=iteration_num, save_plot=True)
+            # plot_histogram_courses(data, gmm.n_components, self.point_list, self.X_B, track_id=self.track_id, iteration_num=iteration_num, save_plot=True)
+            
         return data,gmm, predicted_course, average_distance, probabilities_list
     
     def remove_courses_outside_range(self, courses, current_course, probabilities_list):
@@ -127,7 +126,7 @@ class NCDM:
             if not neighbours:
                 break
 
-            data, gmm, predicted_courses, average_distance, probabilities_list = self.compute_probabilistic_course(neighbours)
+            data, gmm, predicted_courses, average_distance, probabilities_list = self.compute_probabilistic_course(neighbours, iteration_num=k)
 
             choice = 1
             if choice == 0:
@@ -190,16 +189,11 @@ def main():
         track_id = int(sys.argv[1])
         
     path_predictor = NCDM('npy_files/X_B.npy')
-    print(path_predictor.num_tracks)
     path_predictor.plot_histogram = False
-
     initial_point = path_predictor.find_track(track_id)
     path_predictor.run_prediction(initial_point)
-    path_predictor.calculate_root_mean_square_error()
     plt.show()
 
-    # np.save("npy_files/points_list.npy", path_predictor.point_list)
-    # np.save("npy_files/track.npy", path_predictor.track)
  
 def main2():
     path_predictor = NCDM('npy_files/X_B.npy')
@@ -211,8 +205,7 @@ def main2():
         initial_point = path_predictor.find_track(i)
         path_predictor.run_prediction(initial_point)
         count_matrix.check_start_and_stop_prediction(path_predictor.point_list[0], path_predictor.point_list[-1])
-        # plt.show()
         plt.close('all')
 
 if __name__ == '__main__':
-    main2()
+    main()

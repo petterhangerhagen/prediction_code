@@ -1,6 +1,7 @@
 from sklearn.mixture import GaussianMixture
 import numpy as np
 import matplotlib.pyplot as plt
+# from plotting import gmm_plot
 
 def get_GMM(X, max_comps, margin):
     # Initialize variables
@@ -54,6 +55,7 @@ def get_GMM_modified(X, max_comps, margin):
             for j in range(i+1, k):
                 if np.linalg.norm(GMM.means_[i] - GMM.means_[j]) < margin:
                     # print(f"Found GMM with {k} components")
+                    # gmm_plot(X, GMM, prev_GMM)
                     GMM = prev_GMM
                     found = True
                     break
