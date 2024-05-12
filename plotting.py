@@ -425,7 +425,7 @@ def plot_histogram_courses(courses, num_comp, pred_path, X_B, track_id=None, ite
 
 
 
-    GMM = get_GMM_modified(courses, 8,60)
+    GMM = get_GMM_modified(courses, 8, 60)
     # GMM = GaussianMixture(n_components=num_comp,random_state=0).fit(courses.reshape(-1, 1))
     GMM.fit(courses.reshape(-1, 1))
     x = np.linspace(np.min(courses), np.max(courses), 1000)
@@ -514,38 +514,125 @@ def plot_histogram_courses(courses, num_comp, pred_path, X_B, track_id=None, ite
         plt.show()
     plt.close(fig)
 
+def angle_constraints_demo(courses, num_comp, max_comp, margin, pred_path, X_B, track, track_id=None, iteration_num=0, save_plot=False):
 
-def gmm_plot(data, gmm, prev_gmm):
-    fig, (ax,ax2) = plt.subplots(1,2,figsize=(17, 7.166666))
-    ax.hist(data, bins=100, density=True, alpha=0.6, color='g')
-    ax2.hist(data, bins=100, density=True, alpha=0.6, color='g')
+    fig, (ax1,ax2) = plt.subplots(1,2,figsize=(20, 7.166666))
+    font_size = 17
+    # Main plot
+     # ----------------------------------#
+    courses = np.array(courses)
+    ax1.hist(courses, density=True, bins=360, color='#1f77b4')
+    ax1.set_xlabel('Courses of close neighbors [\u00B0]', fontsize=font_size*1.33)
+    ax1.set_ylabel('Density', fontsize=font_size*1.33)
+    ax1.tick_params(axis='both', which='major', labelsize=font_size*1.33)
+    plt.tight_layout()
+
+
+
+    GMM = get_GMM_modified(courses, max_comp, margin)
+    # GMM = GaussianMixture(n_components=num_comp,random_state=0).fit(courses.reshape(-1, 1))
+    GMM.fit(courses.reshape(-1, 1))
+    # x = np.linspace(np.min(courses), np.max(courses), 1000)
     x = np.linspace(-360, 360, 1000)
-    for i in range(gmm.n_components):
-        ax.plot(x, norm.pdf(x, gmm.means_[i, 0], np.sqrt(gmm.covariances_[i, 0, 0])),"blue")
+    y_poses = []
 
-        max_pdf_point = gmm.means_[i, 0]
-        max_pdf_value = norm.pdf(max_pdf_point, gmm.means_[i, 0], np.sqrt(gmm.covariances_[i, 0, 0]))
-        mean_plot = ax.plot(max_pdf_point, max_pdf_value, color='blue', marker='o', markersize=10)
-        prob = gmm.weights_[i]
+    for num in range(len(GMM.means_)):
+        GMM_plot = ax1.plot(x, norm.pdf(x, GMM.means_[num, 0], np.sqrt(GMM.covariances_[num, 0, 0])), lw="3", color='#c73838')
+        max_pdf_point = GMM.means_[num, 0]
+        max_pdf_value = norm.pdf(max_pdf_point, GMM.means_[num, 0], np.sqrt(GMM.covariances_[num, 0, 0]))
+        mean_plot = ax1.plot(max_pdf_point, max_pdf_value, color='#c73838', marker='o', markersize=10)
+        prob = GMM.weights_[num]
         x_pos = max_pdf_point - 10
         y_pos = max_pdf_value #+ 0.0005
-        # y_poses.append(y_pos)
-        ax.text(x_pos , y_pos, f"\u03BC = {max_pdf_point:.2f}\np(x)={prob:.4f}", fontsize=12, verticalalignment='bottom', horizontalalignment='right')
+        y_poses.append(y_pos)
+        diff = 0
+        if x_pos < 0:
+            diff = abs(x_pos*0.2)
+        elif x_pos > 0:
+            diff = -abs(x_pos*0.15)
+        ax1.text(x_pos + diff , y_pos*1.03, f"\u03BC = {max_pdf_point:.2f}\np(x)={prob:.4f}", fontsize=font_size*1.1, verticalalignment='bottom', horizontalalignment='center')
+    ax1.set_xlim(-360, 360)
+    # ax1.set_ylim(0,max(y_poses)*1.5)
+    ax1.set_ylim(0,0.1)
+
+
+    add_mean = False
+    if add_mean:
+        mean_courses = np.mean(courses)
+        ax1.plot([mean_courses, mean_courses], [0, 0.005], color='#2ca02c', lw="8")
+        ax1.text(mean_courses, 0.006, f"{mean_courses:.2f}", fontsize=font_size*1.1, verticalalignment='bottom', horizontalalignment='center')
+
+        legend_elements_1 = [Line2D([0], [0], color='#c73838', label='GMM', linewidth=2),
+                            Line2D([0], [0], marker='o', color='w', label='GMM means', markerfacecolor='#c73838', markersize=10),
+                            Line2D([0], [0], color='#2ca02c', label='Average course', linewidth=4)]
+    else:
+        legend_elements_1 = [Line2D([0], [0], color='#c73838', label='GMM', linewidth=2),
+                            Line2D([0], [0], marker='o', color='w', label='GMM means', markerfacecolor='#c73838', markersize=10)]
+    ax1.legend(handles=legend_elements_1,loc="upper left",fontsize=font_size)
+    # # ----------------------------------#
+
+
+    # A smaller plot within the main plot
+    # left, bottom, width, height = 0.73, 0.71, 0.25, 0.25
+    # ax2 = fig.add_axes([left, bottom, width, height])
+
+    # plot the predicted path
+    ax2, origin_x, origin_y = occupancy_grid_to_map(ax2)
+    ax2, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax2, X_B, origin_x, origin_y, marker_size=0.01)
+    plot_single_vessel_track(ax2, track, origin_x, origin_y, legend_elements, track_id, save_plot=False)
+    color = '#ff7f0e'  # Orange
+    point_array = np.array(pred_path)
+    xs = point_array[:, 0] + origin_x
+    ys = point_array[:, 1] + origin_y
+    ax2.plot(xs, ys, color=color, linewidth=2)
+    ax2.plot(point_array[0, 0] + origin_x, point_array[0, 1] + origin_y, marker='o', color=color, markersize=15)
+    ax2.plot(point_array[-1, 0] + origin_x, point_array[-1, 1] + origin_y, marker='o', color='black', markersize=10)
+    # Remove x_label and y_label
+    ax2.set_xlabel('')
+    ax2.set_ylabel('')
+    # ax2.tick_params(axis='both', which='major', labelsize=12)
+    legend_elements_2 = [Line2D([0], [0], color=color, label='Predicted path', linewidth=2),
+                        Line2D([0], [0], marker='o', color="w", label='Predicted path start', markerfacecolor=color, markersize=15),
+                        Line2D([0], [0], marker='o', color='w', label='Current prediction point', markerfacecolor='black', markersize=10),
+                        Line2D([0], [0], color='#2ca02c', label='True track', linewidth=2)]
+    ax2.legend(handles=legend_elements_2, fontsize=font_size, loc='lower right')
+
+    ax2.tick_params(axis='both', which='both', bottom=False, top=False, left=False, right=False)
+    # Remove x_label and y_label
+    ax2.set_xlabel('')
+    ax2.set_ylabel('')
+    # Remove numbers on the axis
+    ax2.set_xticklabels([])
+    ax2.set_yticklabels([])
+
+    if save_plot:
+        save_path = make_new_directory(dir_name=f'Angle_demo/Track_{track_id}', include_date=False)
+        if track_id is not None:
+            # now_time = datetime.datetime.now().strftime("%H,%M,%S")
+            if np.max(courses) > 190:
+                save_name = f"Track_{track_id}_plot_{iteration_num}_1.png"
+            else:
+                save_name = f"Track_{track_id}_plot_{iteration_num}_2.png"
+            save_path = os.path.join(save_path, save_name)
+        else:
+            now_time = datetime.datetime.now().strftime("%H,%M,%S")
+            save_path = os.path.join(save_path, f'course_histogram({now_time}).png')
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+    if not save_plot:
+        plt.show()
+    plt.close(fig)
+
+
+
+
+
+
+
+
+
+
+
+
+
     
-    for i in range(prev_gmm.n_components):
-        ax2.plot(x, norm.pdf(x, prev_gmm.means_[i, 0], np.sqrt(prev_gmm.covariances_[i, 0, 0])),"red")
-        max_pdf_point = prev_gmm.means_[i, 0]
-        max_pdf_value = norm.pdf(max_pdf_point, prev_gmm.means_[i, 0], np.sqrt(prev_gmm.covariances_[i, 0, 0]))
-        ax2.plot(max_pdf_point, max_pdf_value, color='red', marker='o', markersize=10)
-        prob = prev_gmm.weights_[i]
-        x_pos = max_pdf_point - 10
-        y_pos = max_pdf_value #+ 0.0005
-        # y_poses.append(y_pos)
-        ax2.text(x_pos , y_pos, f"\u03BC = {max_pdf_point:.2f}\np(x)={prob:.4f}", fontsize=12, verticalalignment='bottom', horizontalalignment='right')
-    
-       
-    ax.set_xlabel('Course [degrees]')
-    ax.set_ylabel('Density')
-    ax2.set_xlabel('Course [degrees]')
-    ax2.set_ylabel('Density')
-    plt.show()

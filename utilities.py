@@ -8,7 +8,7 @@ import datetime
 from sklearn.mixture import GaussianMixture
 from scipy.interpolate import interp1d
 from sklearn.metrics import mean_squared_error
-
+import re
 
 def start_plot():
     fig, ax = plt.subplots(figsize=(11, 7.166666))
@@ -317,6 +317,7 @@ def check_similarites_between_tracks_2(path1,path2):
     # return True
 
 def RMSE(original_track, predicted_track, plot_statement=False):
+
     # Calculate the distance between the last point of the original track and each point in the predicted track
     distances = np.linalg.norm(original_track[-1] - predicted_track, axis=1)
 
@@ -358,3 +359,32 @@ def RMSE(original_track, predicted_track, plot_statement=False):
     # Calculate RMSE
     rmse = np.sqrt(mean_squared_error(original_track, interpolated_predicted_track))
     return rmse
+
+def read_results():
+    # Define variables to store the sum of RMSE values for r_c=3 and r_c=10
+    total_rmse_rc3 = 0
+    total_rmse_rc10 = 0
+    count = 0
+    # Open the text file
+    with open("results.txt", "r") as file:
+        # Read each line
+        for line in file:
+            line = line.split(":")
+            value1 = line[2].split(",")[0]
+            value2 = line[3].split("\n")[0]
+
+            # Extract RMSE values for r_c=3 and r_c=10
+            rmse_rc3 = float(value1)
+            rmse_rc10 = float(value2)
+            # print(f"RMSE for r_c=3: {rmse_rc3}, RMSE for r_c=10: {rmse_rc10}")
+
+            # Add RMSE values to the total
+            total_rmse_rc3 += rmse_rc3
+            total_rmse_rc10 += rmse_rc10
+            count += 1
+
+
+    # Print the total RMSE for r_c=3 and r_c=10
+    print(f"Total RMSE for r_c=3: {total_rmse_rc3/count:.2f}")
+    print(f"Total RMSE for r_c=10: {total_rmse_rc10/count:.2f}")
+
