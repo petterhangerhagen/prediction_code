@@ -9,6 +9,7 @@ from sklearn.mixture import GaussianMixture
 from scipy.interpolate import interp1d
 from sklearn.metrics import mean_squared_error
 import re
+from plotting import plot_RMSE
 
 def start_plot():
     fig, ax = plt.subplots(figsize=(11, 7.166666))
@@ -316,7 +317,7 @@ def check_similarites_between_tracks_2(path1,path2):
     # print(len(path1),len(path2))
     # return True
 
-def RMSE(original_track, predicted_track, plot_statement=False):
+def RMSE(original_track, predicted_track, plot_statement=False, save_plot=False):
 
     # Calculate the distance between the last point of the original track and each point in the predicted track
     distances = np.linalg.norm(original_track[-1] - predicted_track, axis=1)
@@ -329,32 +330,17 @@ def RMSE(original_track, predicted_track, plot_statement=False):
         index_to_cut = len(predicted_track) - 1
     
     # Cut the predicted track short
-    predicted_track = predicted_track[:index_to_cut+1]
+    predicted_track_cut = predicted_track[:index_to_cut+1]
 
     # Interpolate predicted track to fit original track
-    interp_func = interp1d(np.linspace(0, 1, len(predicted_track)), predicted_track, axis=0)
+    interp_func = interp1d(np.linspace(0, 1, len(predicted_track_cut)), predicted_track_cut, axis=0)
     interpolated_predicted_track = interp_func(np.linspace(0, 1, len(original_track)))
 
     if plot_statement:
         original_track = np.array(original_track)
         predicted_track = np.array(predicted_track)
         interpolated_predicted_track = np.array(interpolated_predicted_track)
-        # Plot original track
-        fig6, ax6 = plt.subplots()
-        ax6.plot(original_track[:, 0], original_track[:, 1], "-o", label='Original Track', color='blue')
-
-        # Plot predicted track
-        ax6.plot(predicted_track[:, 0], predicted_track[:, 1], "-o", label='Predicted Track', color='red')
-
-        # Plot interpolated predicted track
-        ax6.plot(interpolated_predicted_track[:, 0], interpolated_predicted_track[:, 1], "-o", label='Interpolated Predicted Track', color='orange')
-
-        ax6.set_xlabel('Longitude')
-        ax6.set_ylabel('Latitude')
-        ax6.set_title('Original Track and Interpolated Predicted Track')
-        ax6.legend()
-        ax6.grid(True)
-        plt.show()
+        plot_RMSE(original_track, predicted_track, interpolated_predicted_track,save_plot=save_plot)
 
     # Calculate RMSE
     rmse = np.sqrt(mean_squared_error(original_track, interpolated_predicted_track))
@@ -387,4 +373,10 @@ def read_results():
     # Print the total RMSE for r_c=3 and r_c=10
     print(f"Total RMSE for r_c=3: {total_rmse_rc3/count:.2f}")
     print(f"Total RMSE for r_c=10: {total_rmse_rc10/count:.2f}")
+
+def compare_different_rc(rmse):
+    with open("comparison_of_rc.txt", "a") as file:
+        file.write(f"RMSE for r_c=3: {rmse[0]}, RMSE for r_c=10: {rmse[1]}\n")
+
+
 

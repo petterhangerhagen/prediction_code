@@ -4,7 +4,7 @@ import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
 from matplotlib.collections import LineCollection
 import numpy as np
-from utilities import make_new_directory
+# from utilities import make_new_directory
 import os
 import datetime
 from scipy.stats import norm
@@ -12,6 +12,26 @@ from sklearn.mixture import GaussianMixture
 from GMM_components import get_GMM_modified
 
 #  colors = ['#ff7f0e','#1f77b4', '#2ca02c','#c73838','#c738c0',"#33A8FF",'#33FFBD']  # Orange, blå, grønn, rød, rosa, lyse blå, turkis
+
+def make_new_directory(dir_name="Results", include_date=True):
+    wokring_directory = os.getcwd()
+    root = os.path.join(wokring_directory, dir_name)
+    # print(f"Root directory: {root}")
+
+    if not os.path.exists(root):
+        os.mkdir(root)
+        # print(f"Directory {root} created")
+    # else:
+    #     print(f"Directory {root} already exists")
+
+    if include_date:
+        todays_date = datetime.datetime.now().strftime("%d-%b")
+        path = os.path.join(root,todays_date)
+        if not os.path.exists(path):
+            os.mkdir(path)
+    else:
+        path = root
+    return path
 
 def start_plot():
     fig, ax = plt.subplots(figsize=(11, 7.166666))
@@ -198,18 +218,20 @@ def occupancy_grid_to_map(ax):
     ax.set_ylabel('North [m]',fontsize=15)
     ax.grid(True)
 
-        # reformating the x and y axis
+    # reformating the x and y axis
     x_axis_list = np.arange(origin_x-120,origin_x+121,20)
     x_axis_list_str = []
     for x in x_axis_list:
         x_axis_list_str.append(str(int(x-origin_x)))
-    plt.xticks(x_axis_list, x_axis_list_str)
+    ax.set_xticks(ticks=x_axis_list)
+    ax.set_xticklabels(x_axis_list_str)
 
     y_axis_list = np.arange(origin_y-140,origin_y+21,20)
     y_axis_list_str = []
     for y in y_axis_list:
         y_axis_list_str.append(str(int(y-origin_y)))
-    plt.yticks(y_axis_list, y_axis_list_str)
+    ax.set_yticks(ticks=y_axis_list)
+    ax.set_yticklabels(y_axis_list_str)
 
     return ax, origin_x, origin_y
 
@@ -623,16 +645,68 @@ def angle_constraints_demo(courses, num_comp, max_comp, margin, pred_path, X_B, 
         plt.show()
     plt.close(fig)
 
+def plot_bounds(X_B, save_plot=False):
+    # fig, ax = plt.subplots(figsize=(11, 7.166666))
+    ax, origin_x, origin_y = start_plot()
+    ax, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, marker_size=0.01)
+    vertecis = [[-110, -110], [-80, -130], [-30, -115], [0, -120], [0, -90], [40, -60], [60, -50], [90, -32], [80, -20], [70, -10], [40, -8], [-20, -6], [-40, -25], [-52, -58], [-60, -68], [-110, -110]]
+    bounds = []
+    for vertex in vertecis:
+        bounds.append([vertex[0] + origin_x, vertex[1] + origin_y])
+    bounds = np.array(bounds)
+    for i in range(len(bounds)-1):
+        ax.plot([bounds[i][0], bounds[i+1][0]], [bounds[i][1], bounds[i+1][1]], color='black', linewidth=2, linestyle='--')
 
+    # Save plot to file
+    if save_plot:
+        save_path = os.getcwd()
+        save_path = os.path.join(save_path, f'Images/bounds.png')
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+    else:
+        plt.show()
 
+def plot_RMSE(original_track, predicted_track, interpolated_predicted_track, save_plot=False):
+    fig, (ax1,ax2) = plt.subplots(1,2,figsize=(20, 7.166666))
+    font_size = 17
 
+    ax1, origin_x, origin_y = occupancy_grid_to_map(ax1)
+    ax1.plot(original_track[:, 0] + origin_x, original_track[:, 1] + origin_y, "-o", label='Original Track', color='#2ca02c')
+    ax1.plot(predicted_track[:, 0] + origin_x, predicted_track[:, 1] + origin_y, "-o", label='Predicted Track', color='#ff7f0e')
+    ax1.plot(predicted_track[0, 0] + origin_x, predicted_track[0, 1] + origin_y, marker='o', color="w", markerfacecolor='black', markersize=12, label='Predicted path start')
+    ax1.legend(fontsize=font_size, loc='lower right')
+    ax1.tick_params(axis='both', which='major', labelsize=font_size)
+    ax1, origin_x, origin_y = occupancy_grid_to_map(ax1)
+    text = f"Number of points:\nOriginal track: {len(original_track)}\nPredicted track: {len(predicted_track)}"
+    ax1.text(origin_x + 20, origin_y -10, text, fontsize=font_size)
+    ax1.set_xlabel('East [m]',fontsize=font_size)
+    ax1.set_ylabel('North [m]',fontsize=font_size)
 
+    ax2, _, _ = occupancy_grid_to_map(ax2)
+    ax2.plot(original_track[:, 0] + origin_x, original_track[:, 1] + origin_y, "-o", label='Original Track', color='#2ca02c')
+    ax2.plot(interpolated_predicted_track[:, 0] + origin_x, interpolated_predicted_track[:, 1] + origin_y, "-o", label='Interpolated Predicted Track', color='#c73838')
+    ax2.plot(interpolated_predicted_track[0, 0] + origin_x, interpolated_predicted_track[0, 1] + origin_y, marker='o', color="w", markerfacecolor='black', markersize=12, label='Predicted path start')
+    ax2.legend(fontsize=font_size, loc='lower right')
+    ax2.tick_params(axis='both', which='major', labelsize=font_size)
+    text = f"Number of points:\nOriginal track: {len(original_track)}\nInterpolated pred. track: {len(interpolated_predicted_track)}"
+    ax2.text(origin_x + 20, origin_y -10, text, fontsize=font_size)
+    ax2.set_xlabel('East [m]',fontsize=font_size)
+    ax2.set_ylabel('North [m]',fontsize=font_size)
 
-
-
-
-
-
-
-
+    plt.tight_layout()
     
+    if save_plot:
+        # now_time = datetime.datetime.now().strftime("%H,%M,%S")
+        now_time = 3
+        save_path = "Images"
+        save_path = os.path.join(save_path, f'RMSE_plot({now_time}).png')
+        plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to {save_path}")
+    else:
+        plt.show()
+
+
+
+
+
+

@@ -2,7 +2,7 @@ import numpy as np
 import scipy.io
 
 # Load AIS data from a .mat file
-data = scipy.io.loadmat('X_B2.mat')
+data = scipy.io.loadmat("/home/aflaptop/Documents/Scripts/prediction_code/npy_files_2/X_B2_2.mat")
 # print(data.items())
 print(data.keys())
 print(data['X_B2'].shape)
@@ -19,5 +19,5 @@ print(X_B[0].shape)
 print(len(X_B))
 
 # Save to a .npy file
-np.save('X_B.npy', X_B)
+np.save('/home/aflaptop/Documents/Scripts/prediction_code/npy_files_2/X_B.npy', X_B)
 

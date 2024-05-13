@@ -10,7 +10,8 @@ from plotting import (
     plot_close_neigbors,
     plot_histogram_distances,
     plot_histogram_courses,
-    angle_constraints_demo
+    angle_constraints_demo,
+    plot_bounds
 )
 from utilities import (
     generate_random_point_and_angle_in_polygon,
@@ -36,7 +37,8 @@ class NCDM:
         self.CVM = False
         self.compare_to_track = False
         self.plot_histogram = False
-        self.r_c = 3
+        self.save_plot = False
+        self.r_c = 10
         self.K = 100
         self.track_id = None
         self.course_diff = 90
@@ -45,6 +47,14 @@ class NCDM:
     def find_track(self, track_id):
         self.track_id = track_id
         self.track = self.X_B[track_id]
+        track_initial_point = self.track[0][:4]
+        self.track = [track[:2] for track in self.track]
+        self.compare_to_track = True
+        return track_initial_point
+
+    def input_track(self, track_id, track):
+        self.track_id = track_id
+        self.track = track
         track_initial_point = self.track[0][:4]
         self.track = [track[:2] for track in self.track]
         self.compare_to_track = True
@@ -175,7 +185,7 @@ class NCDM:
             
             print(f"Predicted course: {pred_course:.2f}")
             current_point = predict_next_point(pred_course, average_distance, current_point)
-            if not check_point_within_bounds(current_point, plot=True):
+            if not check_point_within_bounds(current_point, plot=False):
                 break
             self.point_list.append(current_point[:2])
 
@@ -196,7 +206,7 @@ class NCDM:
         ax, origin_x, origin_y, legend_elements = plot_predicted_path(ax, pred_paths, initial_point, self.r_c, self.K, self.rmse, origin_x, origin_y,
                             legend_elements, save_plot=False)
         if self.compare_to_track:
-            plot_single_vessel_track(ax, self.track, origin_x, origin_y, legend_elements, self.track_id, save_plot=True)
+            plot_single_vessel_track(ax, self.track, origin_x, origin_y, legend_elements, self.track_id, save_plot=self.save_plot)
 
     def calculate_root_mean_square_error(self):
         # Can only be called after run_prediction
@@ -207,7 +217,7 @@ class NCDM:
             print("No path found")
             return None
         error = 0
-        self.rmse = RMSE(actual_path, pred_path, plot_statement=True)
+        self.rmse = RMSE(actual_path, pred_path, plot_statement=False, save_plot=False)
         print(f"Root mean square error: {self.rmse}")
 
 
@@ -218,7 +228,8 @@ def main():
     else:
         track_id = int(sys.argv[1])
         
-    path_predictor = NCDM('npy_files/X_B.npy')
+    # path_predictor = NCDM('npy_files/X_B.npy')
+    path_predictor = NCDM('npy_files_2/X_B_valid_tracks.npy')
     path_predictor.r_c = 10
     path_predictor.choice = 1
     path_predictor.plot_histogram = False
@@ -228,13 +239,13 @@ def main():
 
  
 def main2():
-    path_predictor = NCDM('npy_files/X_B.npy')
+    path_predictor = NCDM('npy_files_2/X_B_valid_tracks.npy')
     num_of_tracks = path_predictor.num_tracks
 
-    # count_matrix = CountMatrix(reset=True)
-    tracks_to_check = [0,3,5,16,17,18,19,20,22,24,29,30,33,35,37,38,39,40,44,50,51,57,58,59]
+    count_matrix = CountMatrix(reset=True)
+    # tracks_to_check = [0,3,5,16,17,18,19,20,22,24,29,30,33,35,37,38,39,40,44,50,51,57,58,59]
     # for i in range(20,40):
-    for i in tracks_to_check:
+    for i in range(num_of_tracks):
         initial_point = path_predictor.find_track(i)
         path_predictor.r_c = 3
         path_predictor.choice = 0
@@ -250,7 +261,33 @@ def main2():
         # count_matrix.check_start_and_stop_prediction(path_predictor.point_list[0], path_predictor.point_list[-1])
         plt.close('all')
 
+def main3():
+    path_predictor = NCDM('npy_files_2/X_B_train.npy')
+    num_of_tracks = path_predictor.num_tracks
+    print(f"Number of tracks: {num_of_tracks}")
+
+    test_tracks = np.load('npy_files_2/X_B_test.npy', allow_pickle=True).item()
+
+    for track_id, track in test_tracks.items():
+        initial_point = path_predictor.input_track(track_id, track)
+        for i in range(1,21):
+            path_predictor.r_c = i
+            path_predictor.choice = 1
+            path_predictor.plot_histogram = False
+            path_predictor.save_plot = False
+            RMSE = path_predictor.rmse
+            path_predictor.run_prediction(initial_point)
+            plt.close('all')
+        break
+
+    # count_matrix = CountMatrix(reset=True)
+    # for i in range(num_of_tracks):
+    #     initial_point = path_predictor.find_track(i)
+    #     path_predictor.r_c = 10
+    #     path_predictor.choice = 1
+    #     path_predictor.run_prediction(initial_point)
+    #     # count_matrix.check_start_and_stop_prediction(path_predictor.point_list[0], path_predictor.point_list[-1])
+    #     # plt.close('all')
+
 if __name__ == '__main__':
-    main()
-    # main2()
-    # read_results()
+    main3()
