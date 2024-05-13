@@ -11,7 +11,8 @@ from plotting import (
     plot_histogram_distances,
     plot_histogram_courses,
     angle_constraints_demo,
-    plot_bounds
+    plot_bounds,
+    plot_rc_dist
 )
 from utilities import (
     generate_random_point_and_angle_in_polygon,
@@ -23,7 +24,8 @@ from utilities import (
     predict_next_point,
     add_CVM,
     RMSE,
-    read_results
+    read_results,
+    compare_different_rc
 )
 from check_start_and_stop import CountMatrix
 from GMM_components import get_GMM, get_GMM_modified
@@ -43,6 +45,7 @@ class NCDM:
         self.track_id = None
         self.course_diff = 90
         self.choice = 0
+        self.count_number_of_close_neighbours = []
 
     def find_track(self, track_id):
         self.track_id = track_id
@@ -72,7 +75,8 @@ class NCDM:
         if self.CVM:
             closest_neighbours = add_CVM(closest_neighbours, point)
 
-        print(f"Number of neighbours: {count}")
+        # print(f"Number of neighbours: {count}")
+        self.count_number_of_close_neighbours.append(count)
         return closest_neighbours
 
     def compute_average_course_and_distance(self, neighbours):
@@ -157,8 +161,8 @@ class NCDM:
         current_point = initial_point
         current_course = calculate_course(current_point[:2], current_point[2:4])
         for k in range(K):
-            print(f"Iteration {k}, track id: {self.track_id} of {self.num_tracks}")
-            print(f"Current point: {current_point[0]:.2f}, {current_point[1]:.2f}")
+            # print(f"Iteration {k}, track id: {self.track_id} of {self.num_tracks}")
+            # print(f"Current point: {current_point[0]:.2f}, {current_point[1]:.2f}")
             current_course = calculate_course(current_point[:2], current_point[2:4])
             neighbours = self.find_closest_neighbours(current_point, r_c)
             if not neighbours:
@@ -183,7 +187,7 @@ class NCDM:
                 print("Average distance too low")
                 break
             
-            print(f"Predicted course: {pred_course:.2f}")
+            # print(f"Predicted course: {pred_course:.2f}")
             current_point = predict_next_point(pred_course, average_distance, current_point)
             if not check_point_within_bounds(current_point, plot=False):
                 break
@@ -192,21 +196,28 @@ class NCDM:
             if self.plot_histogram:
                 plot_histogram(data, gmm, self.point_list, self.track_id, save_plot=True)
                 
-            print("\n")
+            # print("\n")
         self.point_list.append(current_point[2:4])
         return self.point_list
 
     def run_prediction(self, initial_point):
         pred_paths = self.iterative_path_prediction(initial_point, self.r_c, self.K)
-        self.calculate_root_mean_square_error()
-
-        ax, origin_x, origin_y = start_plot()
-        ax, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax, self.X_B, origin_x, origin_y,
-                                                                         save_plot=False)
-        ax, origin_x, origin_y, legend_elements = plot_predicted_path(ax, pred_paths, initial_point, self.r_c, self.K, self.rmse, origin_x, origin_y,
-                            legend_elements, save_plot=False)
         if self.compare_to_track:
-            plot_single_vessel_track(ax, self.track, origin_x, origin_y, legend_elements, self.track_id, save_plot=self.save_plot)
+            self.calculate_root_mean_square_error()
+        else:
+            self.rmse = 0
+
+        if self.save_plot:
+            ax, origin_x, origin_y = start_plot()
+            ax, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax, self.X_B, origin_x, origin_y,
+                                                                            save_plot=False)
+            if self.compare_to_track:
+                ax, origin_x, origin_y, legend_elements = plot_predicted_path(ax, pred_paths, initial_point, self.r_c, self.K, self.rmse, origin_x, origin_y, legend_elements, save_plot=False)
+            else:
+                ax, origin_x, origin_y, legend_elements = plot_predicted_path(ax, pred_paths, initial_point, self.r_c, self.K, self.rmse, origin_x, origin_y, legend_elements, save_plot=False)
+            
+            if self.compare_to_track:
+                plot_single_vessel_track(ax, self.track, origin_x, origin_y, legend_elements, self.track_id, save_plot=self.save_plot)
 
     def calculate_root_mean_square_error(self):
         # Can only be called after run_prediction
@@ -237,7 +248,6 @@ def main():
     path_predictor.run_prediction(initial_point)
     plt.show()
 
- 
 def main2():
     path_predictor = NCDM('npy_files_2/X_B_valid_tracks.npy')
     num_of_tracks = path_predictor.num_tracks
@@ -268,17 +278,25 @@ def main3():
 
     test_tracks = np.load('npy_files_2/X_B_test.npy', allow_pickle=True).item()
 
-    for track_id, track in test_tracks.items():
+    first_line = True
+    for k,(track_id, track) in enumerate(test_tracks.items()):
         initial_point = path_predictor.input_track(track_id, track)
         for i in range(1,21):
             path_predictor.r_c = i
             path_predictor.choice = 1
             path_predictor.plot_histogram = False
             path_predictor.save_plot = False
-            RMSE = path_predictor.rmse
             path_predictor.run_prediction(initial_point)
+
+            RMSE = path_predictor.rmse
+            if first_line:
+                compare_different_rc(path_predictor.track_id, RMSE, i, path_predictor.count_number_of_close_neighbours ,reset=True)
+                first_line = False
+            else:
+                compare_different_rc(path_predictor.track_id, RMSE, i, path_predictor.count_number_of_close_neighbours ,reset=False)
             plt.close('all')
-        break
+        # if k == 3:
+        #     break
 
     # count_matrix = CountMatrix(reset=True)
     # for i in range(num_of_tracks):
@@ -289,5 +307,53 @@ def main3():
     #     # count_matrix.check_start_and_stop_prediction(path_predictor.point_list[0], path_predictor.point_list[-1])
     #     # plt.close('all')
 
+def main4():
+    path_predictor = NCDM('npy_files_2/X_B_train.npy')
+    num_of_tracks = path_predictor.num_tracks
+    print(f"Number of tracks: {num_of_tracks}")
+
+    test_tracks = np.load('npy_files_2/X_B_test.npy', allow_pickle=True).item()
+
+    for k,(track_id, track) in enumerate(test_tracks.items()):
+        initial_point = path_predictor.input_track(track_id, track)
+        path_predictor.r_c = 17
+        path_predictor.choice = 1
+        path_predictor.plot_histogram = False
+        path_predictor.save_plot = True
+        path_predictor.run_prediction(initial_point)
+        plt.close('all')
+
+def main5():
+    path_predictor = NCDM('npy_files_2/X_B_train.npy')
+    X_B = path_predictor.X_B
+    num_of_tracks = path_predictor.num_tracks
+    print(f"Number of tracks: {num_of_tracks}")
+
+    areas_num = [344, 281, 363, 102, 21, 134]
+    # areas_num = [2, 2, 2, 2, 2, 2]
+    areas = ["A", "B", "C", "D", "E", "F"]
+    count_matrix = CountMatrix(reset=True)
+    for k,num in enumerate(areas_num):
+        row_sum = int(np.sum(count_matrix.count_matrix[k]))
+        while row_sum < num:
+            print(f"Area {areas[k]}: {row_sum}/{num}")
+            random_point, random_angle = generate_random_point_and_angle_in_polygon(areas[k],X_B=X_B, plot=False)
+            initial_point = find_initial_points(point=random_point, angle=random_angle)
+            path_predictor.r_c = 7
+            path_predictor.choice = 1
+            path_predictor.plot_histogram = False
+            path_predictor.save_plot = True
+            path_predictor.run_prediction(initial_point)
+            count_matrix.check_start_and_stop_prediction(path_predictor.point_list[0], path_predictor.point_list[-1])
+            new_row_sum = int(np.sum(count_matrix.count_matrix[k]))
+            if new_row_sum > row_sum:
+                plt.savefig(f"Results/traffic_analysis/area_{areas[k]}_{new_row_sum}.png", dpi=300)
+            row_sum = new_row_sum
+            plt.close('all')
+            print("\n")
+    
+
 if __name__ == '__main__':
-    main3()
+    main5()
+    # main3()
+    # plot_rc_dist()

@@ -35,6 +35,7 @@ def make_new_directory(dir_name="Results", include_date=True):
 
 def start_plot():
     fig, ax = plt.subplots(figsize=(11, 7.166666))
+    font_size = 20
 
     # Plotting the occupancy grid'
     data = np.load(f"npy_files/occupancy_grid_without_dilating.npy",allow_pickle='TRUE').item()
@@ -49,9 +50,9 @@ def start_plot():
     ax.set_xlim(origin_x-120,origin_x + 120)
     ax.set_ylim(origin_y-140, origin_y + 20)
     ax.set_aspect('equal')
-    ax.set_xlabel('East [m]',fontsize=15)
-    ax.set_ylabel('North [m]',fontsize=15)
-    plt.tick_params(axis='both', which='major', labelsize=15)
+    ax.set_xlabel('East [m]',fontsize=font_size)
+    ax.set_ylabel('North [m]',fontsize=font_size)
+    plt.tick_params(axis='both', which='major', labelsize=font_size)
     plt.tight_layout()
 
     # reformating the x and y axis
@@ -72,7 +73,7 @@ def start_plot():
     return ax, origin_x, origin_y
 
 def plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, save_plot=False, marker_size=0.01):
-
+    font_size = 20
     # Extract points for plotting
     points = [X_B[key][:, 0:2] for key in X_B]
     points = np.concatenate(points, axis=0)  # combine all track points into a single array
@@ -81,8 +82,8 @@ def plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, save_plot=False, marker_
     scatter = ax.scatter(xs, ys, s=marker_size, marker=".", color='#1f77b4')
 
     # Create a legend with a larger marker
-    legend_elements = [Line2D([0], [0], marker='o', color='w', label='All tracks',
-                            markerfacecolor=scatter.get_facecolor()[0], markersize=10)]
+    legend_elements = [Line2D([0], [0], marker='o', color='w', label='Data points',
+                            markerfacecolor=scatter.get_facecolor()[0], markersize=6)]
     # ax.legend(handles=legend_elements, fontsize=12, loc='upper left')
 
     # Save plot to file
@@ -94,6 +95,7 @@ def plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, save_plot=False, marker_
     return ax, origin_x, origin_y, legend_elements
 
 def plot_single_vessel_track(ax, track, origin_x, origin_y, legend_elements, track_id, save_plot=False):
+    font_size = 20
     track = np.array(track)
     x = track[:, 0] + origin_x
     y = track[:, 1] + origin_y
@@ -101,9 +103,10 @@ def plot_single_vessel_track(ax, track, origin_x, origin_y, legend_elements, tra
     # Plot the track
     c = '#2ca02c'  # Green
     ax.plot(x,y, color=c, linewidth=2)
-    ax.plot(x[0],y[0], marker='o', color=c, markersize=10)  # Start point
-    legend_elements.append(Line2D([0], [0], color=c, label='Actual track', linewidth=2))
-    ax.legend(handles=legend_elements, fontsize=12, loc='upper left')
+    # ax.plot(x[0],y[0], marker='o', color=c, markersize=10)  # Start point
+    legend_elements.append(Line2D([0], [0], color=c, label='True track', linewidth=2))
+    ax.legend(handles=legend_elements, fontsize=font_size, loc='lower right ')
+    plt.tight_layout()
     # Save plot to file
     if save_plot:
         save_path = make_new_directory()
@@ -159,6 +162,7 @@ def plot_predicted_path_new(ax, pred_paths, origin_x, origin_y, legend_elements)
     # print(f"Plot saved to {save_path}")
 
 def plot_predicted_path(ax, point_list, initial_point, r_c, interations,rmse, origin_x, origin_y, legend_elements, save_plot=False):
+    font_size = 20
     plot_bouns = False
     if plot_bouns:
         vertecis = [[-110, -110], [-80, -130], [-30, -115], [0, -120], [0, -90], [40, -60], [60, -50], [90, -32], [80, -20], [70, -10], [40, -8], [-20, -6], [-40, -25], [-52, -58], [-60, -68], [-110, -110]]
@@ -173,21 +177,20 @@ def plot_predicted_path(ax, point_list, initial_point, r_c, interations,rmse, or
     point_array = np.array(point_list)
     xs = point_array[:, 0] + origin_x
     ys = point_array[:, 1] + origin_y
-    ax.plot(xs, ys, color=c, linewidth=2)
-    ax.plot(initial_point[0] + origin_x, initial_point[1] + origin_y, marker='o', color=c, markersize=10)
-    quiver = ax.quiver(initial_point[0] + origin_x, initial_point[1] + origin_y, 3*np.sin(np.radians(inital_angle)), 3*np.cos(np.radians(inital_angle)), color='black', scale=5, scale_units='inches', width=0.005)
-    legend_elements.append(Line2D([0], [0], marker='o', color='w', label="Initial point" ,markerfacecolor=c, markersize=10))
-    legend_elements.append(Line2D([0], [0], color=c, label='Predicted path', linewidth=2))
-     # Create a custom legend entry for the quiver
+    ax.plot(xs, ys, color=c, linewidth=2, zorder=10)
+    ax.plot(initial_point[0] + origin_x, initial_point[1] + origin_y, marker='o', color=c, markersize=10, zorder=10)
+    quiver = ax.quiver(initial_point[0] + origin_x, initial_point[1] + origin_y, 3*np.sin(np.radians(inital_angle)), 3*np.cos(np.radians(inital_angle)), color='black', scale=5, scale_units='inches', width=0.005, zorder=10)
+    legend_elements.append(Line2D([0], [0], marker='o', color='w', label="Initial prediction point" ,markerfacecolor=c, markersize=10))
     quiver_key = LineCollection([[(0, 0)]], colors=['black'], label='Initial direction', linewidths=[2])
     legend_elements.append(quiver_key)
+    legend_elements.append(Line2D([0], [0], color=c, label='Predicted track', linewidth=2))    
 
-    ax.legend(handles=legend_elements, fontsize=12, loc='upper left')
+    ax.legend(handles=legend_elements, fontsize=font_size, loc='lower right')
 
     # Adding useful information to the plot
     text = f"Initial point: [{initial_point[0]:.1f},{initial_point[1]:.1f}], Initial angle: {inital_angle:.1f}, "
     text += f"Search radius: {r_c}, Iterations: {interations}, RMSE: {rmse:.3f}\n"
-    ax.text(0.0, -0.13, text, transform=ax.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='grey', alpha=0.15))
+    # ax.text(0.0, -0.13, text, transform=ax.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='grey', alpha=0.15))
     plt.tight_layout() 
     
     # Save plot to file
@@ -705,7 +708,66 @@ def plot_RMSE(original_track, predicted_track, interpolated_predicted_track, sav
     else:
         plt.show()
 
+def plot_rc_dist():
+    # Parse the data from the text file
+    data_file = "/home/aflaptop/Documents/Scripts/prediction_code/comparison_of_rc_finished.txt"  # Replace "your_file.txt" with the path to your text file
 
+    track_data = {}
+    current_track_id = None
+
+    with open(data_file, "r") as file:
+        for line in file:
+            if line.strip():
+                parts = line.strip().split()
+                track_id = int(parts[1].strip(","))
+                rc = int(parts[3].strip(","))
+                rmse = float(parts[-1])
+                
+                if track_id != current_track_id:
+                    current_track_id = track_id
+                    track_data[current_track_id] = {"rc": [], "rmse": []}
+                
+                track_data[current_track_id]["rc"].append(rc)
+                track_data[current_track_id]["rmse"].append(rmse)
+
+    # Calculate average RMSE for each value of rc
+    average_rmse = {}
+    for track_id, data in track_data.items():
+        for rc, rmse in zip(data["rc"], data["rmse"]):
+            if rc not in average_rmse:
+                average_rmse[rc] = []
+            average_rmse[rc].append(rmse)
+
+    for rc, rmse_list in average_rmse.items():
+        average_rmse[rc] = sum(rmse_list) / len(rmse_list)
+    print(average_rmse)
+
+
+    # Plot the data
+    fig, ax = plt.subplots(figsize=(11, 7.166666))
+    ax.grid(True)
+    font_size = 17
+
+    min_rmse = min(average_rmse.values())
+    min_rc = min(average_rmse, key=average_rmse.get)
+    print(f"Minimum RMSE: {min_rmse} at rc: {min_rc}")
+    ax.text(min_rc, min_rmse + 7, f"RMSE = {min_rmse:.3f}", fontsize=font_size, verticalalignment='bottom', horizontalalignment='center', color='#c73838')
+    ax.plot(list(average_rmse.keys()), list(average_rmse.values()), label="Average RMSE", color='black', linewidth=2)
+    ax.scatter(list(average_rmse.keys()), list(average_rmse.values()), color='black')
+    ax.plot(min_rc, min_rmse, marker='o', color='#c73838', markersize=10, label="Minimum RMSE")
+    latex_rc =  r"$r_c$"
+    ax.set_xlabel(latex_rc, fontsize=font_size)
+    ax.set_ylabel('RMSE', fontsize=font_size)
+    # ax.set_title('RMSE vs. rc for different tracks')
+    ax.legend(fontsize=font_size)
+    ax.set_xticks(np.arange(0, 22))
+    ax.set_yticks(np.arange(0, 45,5))
+    # ax.set_ylim(0,50)
+    plt.tick_params(axis='both', which='major', labelsize=font_size)
+
+    plt.tight_layout()
+    plt.savefig("Images/rc_dist.png", dpi=300)
+    plt.show()
 
 
 

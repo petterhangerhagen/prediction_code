@@ -22,7 +22,8 @@ from utilities import (
     predict_next_point,
     add_CVM,
     RMSE,
-    read_results
+    read_results,
+    find_best_rc
 )
 from check_start_and_stop import CountMatrix
 from GMM_components import get_GMM, get_GMM_modified
@@ -255,6 +256,4 @@ def main2():
         plt.close('all')
 
 if __name__ == '__main__':
-    # main()
-    main2()
-    read_results()
+    find_best_rc()

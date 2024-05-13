@@ -71,7 +71,7 @@ def plot_all_vessel_tracks(ax, X_B, origin_x, origin_y, save_plot=False):
 
     return ax, origin_x, origin_y, legend_elements
 
-def generate_random_point_and_angle_in_polygon(area, X_B, plot=False):
+def generate_random_point_and_angle_in_polygon(area, X_B=None, plot=False):
     polygonA = np.array([[60, -50], [90, -30], [45, -8], [30, -16]])
     polygonB = np.array([[-18,-38], [0, -20], [-20, -12], [-30, -25]])
     polygonC = np.array([[-103, -107], [-80, -95], [-60, -110], [-80, -130]])
@@ -120,7 +120,7 @@ def generate_random_point_and_angle_in_polygon(area, X_B, plot=False):
 
     random_angle = np.random.uniform(angle_min, angle_max)
     
-    if plot:
+    if plot and X_B is not None:
         ax1, origin_x, origin_y = start_plot()
         ax1.plot(origin_x, origin_y, 'ro')  # Origin marked in red
         ax1, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax1, X_B, origin_x, origin_y,save_plot=False)
@@ -374,9 +374,58 @@ def read_results():
     print(f"Total RMSE for r_c=3: {total_rmse_rc3/count:.2f}")
     print(f"Total RMSE for r_c=10: {total_rmse_rc10/count:.2f}")
 
-def compare_different_rc(rmse):
-    with open("comparison_of_rc.txt", "a") as file:
-        file.write(f"RMSE for r_c=3: {rmse[0]}, RMSE for r_c=10: {rmse[1]}\n")
+def compare_different_rc(track_id, rmse, rc, number_of_close_neighbor_list ,reset=False):
+    if reset:
+        with open("comparison_of_rc.txt", "w") as file:
+            file.write("")
+    
+    number_of_close_neighbor_list = np.array(number_of_close_neighbor_list)
+    avg_number_of_close_neighbor = np.mean(number_of_close_neighbor_list)
 
+    with open("comparison_of_rc.txt", "r") as file:
+        lines = file.readlines()
+        if len(lines) > 1:
+            last_id = int(lines[-1].split(":")[1].split(",")[0])
+        else:
+            last_id = track_id
+
+    if last_id != track_id:
+        with open("comparison_of_rc.txt", "a") as file:
+            file.write("\n")
+            file.write(f"Track_id: {track_id}, rc: {rc}, CN: {avg_number_of_close_neighbor:.2f} RMSE: {rmse:.2f}\n")
+    else:
+        with open("comparison_of_rc.txt", "a") as file:
+            file.write(f"Track_id: {track_id}, rc: {rc}, CN: {avg_number_of_close_neighbor:.2f} RMSE: {rmse:.2f}\n")
+
+def find_best_rc():
+    # Define a dictionary to store the best rc for each track
+    best_rc = {}
+
+    # Open the text file
+    with open('comparison_of_rc.txt', 'r') as file:
+        # Iterate through each line in the file
+        for line in file:
+            # Split the line into components
+            if line == "\n":
+                continue
+            info = line.split()
+            track_id = int(info[1].split(",")[0])
+            rc = int(info[3].split(",")[0])
+            CN = float(info[5].split(",")[0])
+            RMSE = float(info[7].split(",")[0])
+
+            # Check if the track_id already exists in the best_rc dictionary
+            if track_id in best_rc:
+                # If the current RMSE is lower than the previous best RMSE for the same track,
+                # update the best_rc dictionary with the current rc
+                if RMSE < best_rc[track_id]['RMSE']:
+                    best_rc[track_id] = {'rc': rc, 'RMSE': RMSE}
+            else:
+                # If the track_id is not in the dictionary, add it with the current rc and RMSE
+                best_rc[track_id] = {'rc': rc, 'RMSE': RMSE}
+
+    # Print the best rc for each track
+    for track_id, data in best_rc.items():
+        print(f"Track_id: {track_id}, Best rc: {data['rc']}, RMSE: {data['RMSE']}")
 
 

@@ -205,14 +205,14 @@ class CountMatrix:
         for rectangle in rectangles:
             if rectangle.start_or_stop(x_last,y_last):
                 stop_rectangle = rectangle
-                print(f"Stop in {stop_rectangle}")
+                # print(f"Stop in {stop_rectangle}")
 
             if rectangle.start_or_stop(x_first,y_first):
                 start_rectangle = rectangle
-                print(f"Start in {start_rectangle}")
+                # print(f"Start in {start_rectangle}")
                 
         if stop_rectangle is None:
-            print("No stop rectangle")
+            # print("No stop rectangle")
             self.unvalidated_track += 1
 
         # if stop_rectangle is not None and start_rectangle is not None:
@@ -227,13 +227,13 @@ class CountMatrix:
         else:
             self.unvalidated_track += 1
 
-        print(self.count_matrix)
+        # print(self.count_matrix)
         with open("info.txt", "w") as file:
             file.write(f"Number of tracks: {self.number_of_tracks}\n")
             file.write(f"Number on the diagonal: {self.number_of_tracks_on_diagonal}\n")
             file.write(f"Unvalid tracks: {self.unvalidated_track}\n")
-        print(f"Number on the diagonal: {self.number_of_tracks_on_diagonal}")
-        print(f"Unvalid tracks: {self.unvalidated_track}")
+        # print(f"Number on the diagonal: {self.number_of_tracks_on_diagonal}")
+        # print(f"Unvalid tracks: {self.unvalidated_track}")
 
 
 def plot_rectangles():

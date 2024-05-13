@@ -50,6 +50,7 @@ def get_GMM_modified(X, max_comps, margin):
             GMM = GaussianMixture(n_components=k,random_state=0).fit(X)
         except Exception as e:
             print(f"Failed to fit GMM with {k} components: {e}")
+            print(f"Size of data: {len(X)}")
             GMM = prev_GMM
             break
        
@@ -68,7 +69,7 @@ def get_GMM_modified(X, max_comps, margin):
 
         k += 1
     
-    print(f"Number of components: {GMM.n_components}")
+    # print(f"Number of components: {GMM.n_components}")
     return GMM
 
 def choice_of_number_of_components(data):
