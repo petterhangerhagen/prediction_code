@@ -3,6 +3,8 @@ from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
 from matplotlib.collections import LineCollection
+from matplotlib.path import Path
+
 import numpy as np
 # from utilities import make_new_directory
 import os
@@ -769,6 +771,113 @@ def plot_rc_dist():
     plt.savefig("Images/rc_dist.png", dpi=300)
     plt.show()
 
+def plot_random_start_areas(X_B, polygons, polygons_dict, random_point, random_angle, area, example_plot=False):
+    if not example_plot:
+        ax1, origin_x, origin_y = start_plot()
+        ax1, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax1, X_B, origin_x, origin_y, save_plot=False)
+        
+        c = '#ff7f0e'
+        font_size = 17
+        names = ["A", "B", "C", "D", "E", "F"]
+        for (poly,name) in zip(polygons,names):
+            temp_poly = np.zeros_like(poly)
+            for i in range(len(poly)):
+                temp_poly[i][0] = poly[i][0] + origin_x
+                temp_poly[i][1] = poly[i][1] + origin_y
+            ax1.fill(temp_poly[:, 0], temp_poly[:, 1], color=c, alpha=0.3)       
+            temp_x = temp_poly[:, 0]
+            temp_x = np.append(temp_x, temp_poly[0, 0]) 
+            temp_y = temp_poly[:, 1] 
+            temp_y = np.append(temp_y, temp_poly[0, 1])
+            ax1.plot(temp_x, temp_y, '#ff7f0e', linewidth=2)
+            temp_x_max = np.max(temp_x)
+            temp_x_min = np.min(temp_x)
+            x_text = temp_x_min + (temp_x_max - temp_x_min)/2
+            temp_y_max = np.max(temp_y)
+            temp_y_min = np.min(temp_y)
+            y_text = temp_y_min + (temp_y_max - temp_y_min)/2
+            ax1.annotate(name, (x_text, y_text), fontsize=25, color='black',ha="center", va="center")
+        
+        point1 = ax1.plot(random_point[0] + origin_x, random_point[1] + origin_y, marker='o', color="black",label="Initial prediction point", markersize=10, zorder=10)    
+        quiver = ax1.quiver(random_point[0] + origin_x, random_point[1] + origin_y, 3*np.sin(np.radians(random_angle)), 3*np.cos(np.radians(random_angle)), color='black', scale=5, scale_units='inches', width=0.005, zorder=10)
+
+        sc = ax1.scatter([], [], marker=r'$\longrightarrow$', c="black", s=800, label="Initial prediction direction")
+        sc2 = ax1.scatter([], [], marker='o', c="black", s=100, label="Initial prediction point")
+        legend_elements.append(sc2)
+        legend_elements.append(sc)
+        
+
+        ax1.legend(handles=legend_elements, fontsize=font_size, loc='lower right')
+
+        ax1.grid(True)
+        plt.tight_layout()
+    else:
+        ax1, origin_x, origin_y = start_plot()
+        ax1, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax1, X_B, origin_x, origin_y, save_plot=False)
+        
+        c = '#ff7f0e'
+        font_size = 17
+        names = ["A", "B", "C", "D", "E", "F"]
+        for (poly,name) in zip(polygons,names):
+            temp_poly = np.zeros_like(poly)
+            for i in range(len(poly)):
+                temp_poly[i][0] = poly[i][0] + origin_x
+                temp_poly[i][1] = poly[i][1] + origin_y
+            ax1.fill(temp_poly[:, 0], temp_poly[:, 1], color=c, alpha=0.3)       
+            temp_x = temp_poly[:, 0]
+            temp_x = np.append(temp_x, temp_poly[0, 0]) 
+            temp_y = temp_poly[:, 1] 
+            temp_y = np.append(temp_y, temp_poly[0, 1])
+            ax1.plot(temp_x, temp_y, '#ff7f0e', linewidth=2)
+            temp_x_max = np.max(temp_x)
+            temp_x_min = np.min(temp_x)
+            x_text = temp_x_min + (temp_x_max - temp_x_min)/2
+            temp_y_max = np.max(temp_y)
+            temp_y_min = np.min(temp_y)
+            y_text = temp_y_min + (temp_y_max - temp_y_min)/2
+            ax1.annotate(name, (x_text, y_text), fontsize=25, color='black',ha="center", va="center")
+        
+        for poly in polygons_dict.values():
+            polygon = poly[0]
+            angle_min = poly[1]
+            angle_max = poly[2]
+            vec_len = 20
+
+            path = Path(polygon)
+            min_x, min_y = np.min(polygon, axis=0)
+            max_x, max_y = np.max(polygon, axis=0)
+
+            x = (min_x + (max_x - min_x) / 2) + origin_x
+            y = (min_y + (max_y - min_y) / 2) + origin_y
+            x2 = x + vec_len*np.sin(np.radians(angle_min)) 
+            y2 = y + vec_len*np.cos(np.radians(angle_min))
+            xs = np.array([x, x2]) 
+            ys = np.array([y, y2])
+            ax1.plot(xs,ys, color='black', linewidth=2, linestyle='--',alpha=0.5)
+            
+            x2 = x + vec_len*np.sin(np.radians(angle_max)) 
+            y2 = y + vec_len*np.cos(np.radians(angle_max))
+            xs = np.array([x, x2]) 
+            ys = np.array([y, y2])
+            ax1.plot(xs,ys, color='black', linewidth=2, linestyle='--',alpha=0.5)
 
 
+        random_point = np.array([50, -32])
+        point1 = ax1.plot(random_point[0] + origin_x, random_point[1] + origin_y, marker='o', color="black", markersize=10, zorder=10)    
+        quiver = ax1.quiver(random_point[0] + origin_x, random_point[1] + origin_y, 3*np.sin(np.radians(random_angle)), 3*np.cos(np.radians(random_angle)), color='black', scale=5, scale_units='inches', width=0.005, zorder=10)
+
+        sc = ax1.scatter([], [], marker=r'$\longrightarrow$', c="black", s=800, label="Initial prediction direction")
+        sc2 = ax1.scatter([], [], marker='o', c="black", s=100, label="Initial prediction point")
+        # sc3 = ax1.plot([], [], linestyle="--", color="black", label="Sector")
+        sc3, = ax1.plot([], [], linestyle="--", color="black", label="Anlge sectors",alpha=0.5) 
+        legend_elements.append(sc2)
+        legend_elements.append(sc)
+        legend_elements.append(sc3)
+        
+
+        ax1.legend(handles=legend_elements, fontsize=font_size, loc='lower right')
+
+        ax1.grid(True)
+        plt.tight_layout()
+   
 

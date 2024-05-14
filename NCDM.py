@@ -339,7 +339,7 @@ def main5():
             print(f"Area {areas[k]}: {row_sum}/{num}")
             random_point, random_angle = generate_random_point_and_angle_in_polygon(areas[k],X_B=X_B, plot=False)
             initial_point = find_initial_points(point=random_point, angle=random_angle)
-            path_predictor.r_c = 7
+            path_predictor.r_c = 17
             path_predictor.choice = 1
             path_predictor.plot_histogram = False
             path_predictor.save_plot = True
@@ -351,9 +351,32 @@ def main5():
             row_sum = new_row_sum
             plt.close('all')
             print("\n")
+        
+def main6():
+    path_predictor = NCDM('npy_files_2/X_B_train.npy')
+    X_B = path_predictor.X_B
+    num_of_tracks = path_predictor.num_tracks
+    print(f"Number of tracks: {num_of_tracks}")
+
+    areas_num = [2, 2, 2, 2, 2, 2]
+    areas = ["A", "B", "C", "D", "E", "F"]
+
+    for k,num in enumerate(range(1)):
+
+        random_point, random_angle = generate_random_point_and_angle_in_polygon(areas[k],X_B=X_B, plot=True)
+        initial_point = find_initial_points(point=random_point, angle=random_angle)
+        # path_predictor.r_c = 7
+        # path_predictor.choice = 1
+        # path_predictor.plot_histogram = False
+        # path_predictor.save_plot = False
+        # path_predictor.run_prediction(initial_point)
+
+        plt.savefig(f"Images/random_generated_points_from_area.png", dpi=300)
+        plt.show()
+        plt.close('all')
+        print("\n")
+        
     
 
 if __name__ == '__main__':
-    main5()
-    # main3()
-    # plot_rc_dist()
+    main6()

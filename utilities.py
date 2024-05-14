@@ -9,7 +9,7 @@ from sklearn.mixture import GaussianMixture
 from scipy.interpolate import interp1d
 from sklearn.metrics import mean_squared_error
 import re
-from plotting import plot_RMSE
+from plotting import plot_RMSE, plot_random_start_areas
 
 def start_plot():
     fig, ax = plt.subplots(figsize=(11, 7.166666))
@@ -80,33 +80,19 @@ def generate_random_point_and_angle_in_polygon(area, X_B=None, plot=False):
     polygonF = np.array([[4, -25], [28, -25], [28, -8], [4, -8]])
     polygons = [polygonA, polygonB, polygonC, polygonD, polygonE, polygonF]
 
-    if area == "west" or area == "C":
-        polygon = polygonC
-        angle_min = 30
-        angle_max = 110
-    elif area == "east" or area == "A":
-        polygon = polygonA
-        angle_min = 190
-        angle_max = 280
-    elif area == "south" or area == "D":
-        polygon = polygonD
-        angle_min = -40
-        angle_max = 40
-    elif area == "north" or area == "B":
-        polygon = polygonB
-        angle_min = 100
-        angle_max = 210
-    elif area == "E":
-        polygon = polygonE
-        angle_min = 60
-        angle_max = 180
-    elif area == "F":
-        polygon = polygonF
-        angle_min = 110
-        angle_max = 270
-    else:
-        raise ValueError('Invalid area')
-    
+    polygons_dict = {
+        "C": (polygonC, 20, 110),
+        "A": (polygonA, 190, 280),
+        "D": (polygonD, -40, 40),
+        "B": (polygonB, 100, 210),
+        "E": (polygonE, 60, 180),
+        "F": (polygonF, 110, 270)
+    }
+    poly = polygons_dict[area]
+    polygon = poly[0]
+    angle_min = poly[1]
+    angle_max = poly[2]
+
     path = Path(polygon)
     min_x, min_y = np.min(polygon, axis=0)
     max_x, max_y = np.max(polygon, axis=0)
@@ -121,27 +107,8 @@ def generate_random_point_and_angle_in_polygon(area, X_B=None, plot=False):
     random_angle = np.random.uniform(angle_min, angle_max)
     
     if plot and X_B is not None:
-        ax1, origin_x, origin_y = start_plot()
-        ax1.plot(origin_x, origin_y, 'ro')  # Origin marked in red
-        ax1, origin_x, origin_y, legend_elements = plot_all_vessel_tracks(ax1, X_B, origin_x, origin_y,save_plot=False)
-        for poly in polygons:
-        # Need to shift the polygon to the origin
-            temp_poly = np.zeros_like(poly)
-            for i in range(len(poly)):
-                temp_poly[i][0] = poly[i][0] + origin_x
-                temp_poly[i][1] = poly[i][1] + origin_y
-            ax1.fill(temp_poly[:, 0], temp_poly[:, 1], 'b', alpha=0.3)  # Polygon filled with blue color
-            ax1.plot(temp_poly[:, 0], temp_poly[:, 1], 'b')  # Polygon outline in blue
-        random_point_plot = np.zeros_like(random_point)
-        random_point_plot[0] = random_point[0] + origin_x
-        random_point_plot[1] = random_point[1] + origin_y
-        ax1.plot(*random_point_plot, 'ro')  # Random point marked in red
-        vector_length = 10
-        ax1.quiver(random_point_plot[0], random_point_plot[1], vector_length*np.sin(np.radians(random_angle)), vector_length*np.cos(np.radians(random_angle)), color='g')
-        # plt.plot(random_point[0] + vector_length*np.cos(np.radians(random_angle)), random_point[1] + vector_length*np.sin(np.radians(random_angle)), 'go')  # Random angle marked in green
-        ax1.grid(True)
-        plt.show()
-        plt.close()
+        plot_random_start_areas(X_B, polygons, polygons_dict, random_point, random_angle, area, example_plot=True)
+        
 
     return random_point, random_angle
 
