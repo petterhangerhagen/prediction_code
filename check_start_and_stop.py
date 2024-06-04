@@ -127,18 +127,6 @@ class CountMatrix:
         self.number_of_tracks = 0
         self.number_of_tracks_on_diagonal = 0
         self.files_with_tracks_on_diagonal = []
-
-        # # self.average_length_matrix_filename = "/home/aflaptop/Documents/radar_tracker/code/npy_files/average_length_matrix.npy"
-        # self.average_length_matrix_filename = f"{self.wokring_directory}/code/npy_files/average_length_matrix.npy"
-        # if not os.path.exists(self.average_length_matrix_filename):
-        #     print("Creating average length matrix")
-        #     self.average_length_matrix = np.zeros((6,6))
-        #     np.save(self.average_length_matrix_filename, self.average_length_matrix)
-            
-        # self.average_length_matrix = np.load(self.average_length_matrix_filename)
-        # if reset:
-        #     #print("Resetting average lenght matrix")
-        #     self.average_length_matrix = np.zeros((6,6))
         
         
     def check_start_and_stop(self,track_history,filename=None):

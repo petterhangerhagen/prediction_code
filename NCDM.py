@@ -149,7 +149,7 @@ class NCDM:
             predicted_course = data[0]
             probabilities_list = [1.0]
         else:
-            gmm = get_GMM_modified(data, max_comps=self.gmm_components, margin=self.gmm_margin)
+            gmm = get_GMM(data, max_comps=self.gmm_components, margin=self.gmm_margin)
             probabilities_list = gmm.weights_
             predicted = gmm.means_
             predicted_course = [course[0] for course in predicted]

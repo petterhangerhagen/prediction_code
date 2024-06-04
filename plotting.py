@@ -1,3 +1,11 @@
+"""
+Script Title: ploting.py
+Author: Petter Hangerhagen
+Email: petthang@stud.ntnu.no
+Date: July 4th, 2024
+Description: This script contains functions for plotting the results of the prediction algorithm. It is a mess. 
+"""
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.lines import Line2D

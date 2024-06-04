@@ -1,3 +1,11 @@
+"""
+Script Title: utilities.py
+Author: Petter Hangerhagen
+Email: petthang@stud.ntnu.no
+Date: February 27, 2024
+Description: This script has utility functions that are used in the main script, NCDM.py.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.path import Path

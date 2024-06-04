@@ -5,39 +5,11 @@ from scipy.stats import norm
 import datetime
 import os
 
+"""
+This script contains functions for selecting the number of components in a Gaussian Mixture Model (GMM).
+"""
+
 def get_GMM(X, max_comps, margin):
-    # Initialize variables
-    k = 2
-    found = False
-    # Fit initial GMM with 1 component
-    GMM = GaussianMixture(n_components=1).fit(X)
-    
-    while k <= max_comps:
-        prev_GMM = GMM
-        try:
-            GMM = GaussianMixture(n_components=k).fit(X)
-        except Exception as e:
-            print(f"Failed to fit GMM with {k} components: {e}")
-            GMM = prev_GMM
-            break
-       
-        for i in range(k-1):
-            for j in range(i+1, k):
-                if np.linalg.norm(GMM.means_[i] - GMM.means_[j]) < margin:
-                    # print(f"Found GMM with {k} components")
-                    GMM = prev_GMM
-                    found = True
-                    break
-            if found:
-                break
-        if found:
-            break
-
-        k += 1
-
-    return GMM
-
-def get_GMM_modified(X, max_comps, margin):
     # Initialize variables
     k = 2
     found = False
