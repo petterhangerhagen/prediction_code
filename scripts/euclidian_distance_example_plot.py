@@ -2,6 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utilities import eucldian_distance
 
+"""
+This script is used to generate an example plot for the euclidean distance, which is used in the thesis. 
+"""
+
 start_points = np.array([0, 0, 1, 1])
 data_points_1 = np.array([-1, 0, 0, 1, 1, 2])
 data_points_2 = np.array([2, 1, 1, 0, 0, -1])

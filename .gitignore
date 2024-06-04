@@ -1,5 +1,5 @@
 **/__pycache__/
-/Results
+/Results_old
 /old_scripts
 /old_scripts2
 /Histograms
@@ -7,3 +7,4 @@
 /Distance_histogram
 /Images/Model_selection
 /Angle_demo
+/txt_files

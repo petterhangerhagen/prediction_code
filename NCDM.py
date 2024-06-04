@@ -1,10 +1,20 @@
 """
-Script Title: NDCM.py
+Script Title: NCDM.py
 Author: Petter Hangerhagen and Bjørnar Dalsnes
 Email: petthang@stud.ntnu.no
 Date: July 4th, 2024
-Description: This script is based on Bjørnar Dalesnes NDCM algorithm. The original code was written in MATLAB, it is converted to python and simplified.
+Description: This script is based on Bjørnar Dalesnes NCDM algorithm. The original code was written in MATLAB, it is converted to python and simplified.
 This code does not manage to estimate prediction uncertainty and does not handle branching of sea lanes.
+
+### Get the data to X_B.npy
+All this code is inside the scripts folder. The data is stored in the npy_files folder.
+1. The first requirement is to get the tracks from the multi-target tracker. This is done in: scripts/tracks_to_mat.py
+        This script usese the cubic_spline_interpolation.py to interpolate the tracks. The tracks are saved in a .mat file.
+2. This need to be converted back to a npy files, this is done in: scripts/mat_to_npy.py
+3. The data is split into a training and test set in: scripts/split_train_test.py
+###
+
+
 A lot of plotting code has been developed in order to visualize the results. plotting.py is a mess and has not be cleand up. 
 The easiest way to visualize the results is to create your own code in plotting.py.
 A lot of the functionality used in this script is found in utilities.py and check_start_and_stop.py.
@@ -296,7 +306,7 @@ def main_comapre_against_single_track():
         track_id = int(sys.argv[1])
         
     # path_predictor = NCDM('npy_files/X_B.npy')
-    path_predictor = NCDM('npy_files_2/X_B_valid_tracks.npy')
+    path_predictor = NCDM('npy_files/X_B_valid_tracks.npy')
     path_predictor.r_c = 10
     path_predictor.choice = 1
     path_predictor.plot_histogram = False
@@ -308,11 +318,11 @@ def main_find_search_radius():
     """
     Used to find the optimal search radius for the NCDM algorithm.
     """
-    path_predictor = NCDM('npy_files_2/X_B_train.npy')
+    path_predictor = NCDM('npy_files/X_B_train.npy')
     num_of_tracks = path_predictor.num_tracks
     print(f"Number of tracks: {num_of_tracks}")
 
-    test_tracks = np.load('npy_files_2/X_B_test.npy', allow_pickle=True).item()
+    test_tracks = np.load('npy_files/X_B_test.npy', allow_pickle=True).item()
 
     first_line = True
     for k,(track_id, track) in enumerate(test_tracks.items()):
@@ -333,11 +343,11 @@ def main_find_search_radius():
             plt.close('all')
 
 def main_test_set():
-    path_predictor = NCDM('npy_files_2/X_B_train.npy')
+    path_predictor = NCDM('npy_files/X_B_train.npy')
     num_of_tracks = path_predictor.num_tracks
     print(f"Number of tracks: {num_of_tracks}")
 
-    test_tracks = np.load('npy_files_2/X_B_test.npy', allow_pickle=True).item()
+    test_tracks = np.load('npy_files/X_B_test.npy', allow_pickle=True).item()
 
     for k,(track_id, track) in enumerate(test_tracks.items()):
         initial_point = path_predictor.input_track(track_id, track)
@@ -355,7 +365,7 @@ def main_create_traffic_matrix():
     """
     Creates a traffic matrix for each area, where 'areas_num' are taken from the earlier results.
     """
-    path_predictor = NCDM('npy_files_2/X_B_train.npy')
+    path_predictor = NCDM('npy_files/X_B_train.npy')
     X_B = path_predictor.X_B
     num_of_tracks = path_predictor.num_tracks
     print(f"Number of tracks: {num_of_tracks}")
@@ -388,7 +398,7 @@ def main_semi_random_generated_init_start_position():
     The input to generate_random_point_and_angle_in_polygon must be the area name.
 
     """
-    path_predictor = NCDM('npy_files_2/X_B_train.npy')
+    path_predictor = NCDM('npy_files/X_B_train.npy')
     X_B = path_predictor.X_B
     num_of_tracks = path_predictor.num_tracks
     print(f"Number of tracks: {num_of_tracks}")
@@ -413,7 +423,7 @@ def main_COLREG_tracks_comparison_with_prediction():
     Gets a scenario from the COLREG code (AIS_processing).
 
     """
-    path_predictor = NCDM('npy_files_2/X_B_train.npy')
+    path_predictor = NCDM('npy_files/X_B_train.npy')
 
     # file_name = "/home/aflaptop/Documents/Scripts/AIS_processing/npy_files/colreg_tracks_rosbag_2023-09-09-14-16-35.npy"
     file_name = "/home/aflaptop/Documents/Scripts/AIS_processing/npy_files/colreg_tracks_rosbag_2023-09-02-13-17-29.npy"

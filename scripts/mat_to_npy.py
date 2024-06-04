@@ -2,13 +2,11 @@ import numpy as np
 import scipy.io
 
 # Load AIS data from a .mat file
-data = scipy.io.loadmat("/home/aflaptop/Documents/Scripts/prediction_code/npy_files_2/X_B2_2.mat")
-# print(data.items())
+data = scipy.io.loadmat("/home/aflaptop/Documents/Scripts/prediction_code/npy_files/X_B2_2.mat")
 print(data.keys())
 print(data['X_B2'].shape)
 track_number = 0
 print(data['X_B2'][0, track_number].shape)
-# print(data['X_B2'][0, track_number])
 
 X_B = {}
 
@@ -19,5 +17,5 @@ print(X_B[0].shape)
 print(len(X_B))
 
 # Save to a .npy file
-np.save('/home/aflaptop/Documents/Scripts/prediction_code/npy_files_2/X_B.npy', X_B)
+np.save('/home/aflaptop/Documents/Scripts/prediction_code/npy_files/X_B.npy', X_B)
 

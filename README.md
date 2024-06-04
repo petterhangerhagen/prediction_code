@@ -1,14 +1,16 @@
 # Vessel Movement Prediction from Radar Tracks
 
 ## Overview
-This project aims to predict vessel movements in the Trondheim fjord based on radar track data using machine learning techniques. The radar data was captured using a frequency modulated continuous wave (FMCW) radar stationed at Fosenkaia, overlooking the Trondheim City Canal. This dataset offers a unique opportunity to analyze a variety of vessel movements, from large ferries to small kayaks, providing a comprehensive view of maritime traffic patterns in this area.
+This code is used in my master thesis. It is a simplified version of NCDM, developed by Bjørnar Dalsnes. It is based on his MATLAB code.
+
 
 ## Dataset
-The dataset, named `X_B.npy` and `X_B.mat`, consists of processed radar measurements stored in NumPy and MATLAB formats respectively. These files contain the radar track data that has been filtered and clustered to represent discrete vessel movements within the canal area.
+The code has two main dataset `X_B_train.npy` and `X_B_test.npy`. `X_B_train.npy` consist of all the tracks established by the multi-target tracker, except the 10 tracks in the test set. `X_B_test.npy` consist 10 handpicked tracks. 
 
-### Structure
-- `X_B.npy`: Contains radar track data in a structured NumPy array format.
-- `X_B.mat`: Contains the same data as `X_B.npy` but formatted for MATLAB.
+To create these dataset the following scripts can be used:
+1. scripts/tracks_to_mat.py - This script uses this: scripts/cubic_spline_interpolation.py
+2. scripts/mat_to_npy.py - Converts back into a npy-file
+3. scripts/split_train_test.py - Split into 10 tracks in test set and the rest in the training set.
 
 ### Key Features
 - **Multi-target scenarios**: Data includes scenarios where multiple targets are present within close proximity.
