@@ -18,7 +18,7 @@ The main script is `NCDM.py`, which depends on
 - `check_start_and_stop.py`
 - `GMM_components.py`.
 
-`plotting.py` is used to create plots. This scripts is a mess. Recommend create own code for this. 
+`plotting.py` is used to create plots. This scripts is a mess. Recommend to create own code for this. 
 
 
 ## Installation
@@ -26,4 +26,4 @@ To run the code, you need Python 3.8 or later with the following packages instal
 - NumPy
 - Matplotlib
 - Scikit-learn
-There are maybe some more packages which are needed, but just install the ones needed depending on the error codes. 
+\\There are maybe some more packages which are needed, but just install the ones needed depending on the error codes. 
