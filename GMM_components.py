@@ -82,8 +82,6 @@ def choice_of_number_of_components(data):
     best_n = n_components_range[np.argmin(bics)]
     return best_n
 
-
-
 def gmm_plot(data, gmm, prev_gmm, save_plot=False):
     #  colors = ['#ff7f0e','#1f77b4', '#2ca02c','#c73838','#c738c0',"#33A8FF",'#33FFBD']  # Orange, blå, grønn, rød, rosa, lyse blå, turkis
     fig, (ax1,ax2) = plt.subplots(1,2,figsize=(20, 7.166666))

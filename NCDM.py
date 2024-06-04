@@ -1,3 +1,17 @@
+"""
+Script Title: NDCM.py
+Author: Petter Hangerhagen and Bjørnar Dalsnes
+Email: petthang@stud.ntnu.no
+Date: July 4th, 2024
+Description: This script is based on Bjørnar Dalesnes NDCM algorithm. The original code was written in MATLAB, it is converted to python and simplified.
+This code does not manage to estimate prediction uncertainty and does not handle branching of sea lanes.
+A lot of plotting code has been developed in order to visualize the results. plotting.py is a mess and has not be cleand up. 
+The easiest way to visualize the results is to create your own code in plotting.py.
+A lot of the functionality used in this script is found in utilities.py and check_start_and_stop.py.
+check_start_and_stop.py is used to create a traffic matrix for each area.
+The GMM_components.py is used to estimate the probabilistic course distribution.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
@@ -60,15 +74,6 @@ class NCDM:
         self.track_id = track_id
         self.track = track
         track_initial_point = self.track[0][:4]
-        self.track = [track[:2] for track in self.track]
-        self.compare_to_track = True
-        return track_initial_point
-    
-    def input_COLREG_track(self, track_id, track):
-        self.track_wih_all_info = track
-        self.track_id = track_id
-        self.track = np.array(track)[:,1:3]
-        track_initial_point = [self.track[1][0], self.track[1][1], self.track[2][0], self.track[2][1]]
         self.track = [track[:2] for track in self.track]
         self.compare_to_track = True
         return track_initial_point
@@ -180,7 +185,8 @@ class NCDM:
 
             data, gmm, predicted_courses, average_distance, probabilities_list = self.compute_probabilistic_course(neighbours, iteration_num=k)
 
-            # self.choice = 0
+            # Choice 0: Take the course with the highest probability
+            # Choice 1: Take the course with the highest probability within a certain range
             if self.choice == 0:
                 max_prob_index = np.argmax(probabilities_list)
                 pred_course = predicted_courses[max_prob_index]
@@ -191,13 +197,10 @@ class NCDM:
                 pred_course = predicted_courses_mod[max_prob_index]
                 current_course = pred_course
             
-            # pred_course, average_distance = self.compute_average_course_and_distance(neighbours)
-
             if average_distance < 2:
                 print("Average distance too low")
                 break
             
-            # print(f"Predicted course: {pred_course:.2f}")
             current_point = predict_next_point(pred_course, average_distance, current_point)
             if not check_point_within_bounds(current_point, plot=False):
                 break
@@ -206,7 +209,6 @@ class NCDM:
             if self.plot_histogram:
                 plot_histogram(data, gmm, self.point_list, self.track_id, save_plot=True)
                 
-            # print("\n")
         self.point_list.append(current_point[2:4])
         return self.point_list
 
@@ -240,6 +242,15 @@ class NCDM:
         error = 0
         self.rmse, _ = RMSE(actual_path, pred_path, plot_statement=False, save_plot=False)
         print(f"Root mean square error: {self.rmse}")
+
+    def input_COLREG_track(self, track_id, track):
+        self.track_wih_all_info = track
+        self.track_id = track_id
+        self.track = np.array(track)[:,1:3]
+        track_initial_point = [self.track[1][0], self.track[1][1], self.track[2][0], self.track[2][1]]
+        self.track = [track[:2] for track in self.track]
+        self.compare_to_track = True
+        return track_initial_point
 
     def save_colreg_predicted_track(self):
         try:
@@ -275,9 +286,9 @@ class NCDM:
         # print(colreg_track_complete)
         return colreg_track_complete
 
+    
 
-
-def main():
+def main_comapre_against_single_track():
     if len(sys.argv) < 2:
         print("Please provide a track id")
         track_id = 0
@@ -293,30 +304,10 @@ def main():
     path_predictor.run_prediction(initial_point)
     plt.show()
 
-def main2():
-    path_predictor = NCDM('npy_files_2/X_B_valid_tracks.npy')
-    num_of_tracks = path_predictor.num_tracks
-
-    count_matrix = CountMatrix(reset=True)
-    # tracks_to_check = [0,3,5,16,17,18,19,20,22,24,29,30,33,35,37,38,39,40,44,50,51,57,58,59]
-    # for i in range(20,40):
-    for i in range(num_of_tracks):
-        initial_point = path_predictor.find_track(i)
-        path_predictor.r_c = 3
-        path_predictor.choice = 0
-        path_predictor.run_prediction(initial_point)
-        rmse1 = path_predictor.rmse
-
-        path_predictor.r_c = 10
-        path_predictor.choice = 1
-        path_predictor.run_prediction(initial_point)
-        rmse2 = path_predictor.rmse
-        with open('results.txt', 'a') as f:
-            f.write(f"Track {i}: r_c =3, RMSE: {rmse1:.2f}, r_c=10 RMSE: {rmse2:.2f}\n")
-        # count_matrix.check_start_and_stop_prediction(path_predictor.point_list[0], path_predictor.point_list[-1])
-        plt.close('all')
-
-def main3():
+def main_find_search_radius():
+    """
+    Used to find the optimal search radius for the NCDM algorithm.
+    """
     path_predictor = NCDM('npy_files_2/X_B_train.npy')
     num_of_tracks = path_predictor.num_tracks
     print(f"Number of tracks: {num_of_tracks}")
@@ -340,19 +331,8 @@ def main3():
             else:
                 compare_different_rc(path_predictor.track_id, RMSE, i, path_predictor.count_number_of_close_neighbours ,reset=False)
             plt.close('all')
-        # if k == 3:
-        #     break
 
-    # count_matrix = CountMatrix(reset=True)
-    # for i in range(num_of_tracks):
-    #     initial_point = path_predictor.find_track(i)
-    #     path_predictor.r_c = 10
-    #     path_predictor.choice = 1
-    #     path_predictor.run_prediction(initial_point)
-    #     # count_matrix.check_start_and_stop_prediction(path_predictor.point_list[0], path_predictor.point_list[-1])
-    #     # plt.close('all')
-
-def main4():
+def main_test_set():
     path_predictor = NCDM('npy_files_2/X_B_train.npy')
     num_of_tracks = path_predictor.num_tracks
     print(f"Number of tracks: {num_of_tracks}")
@@ -366,16 +346,21 @@ def main4():
         path_predictor.plot_histogram = False
         path_predictor.save_plot = True
         path_predictor.run_prediction(initial_point)
+        plt.show()
         plt.close('all')
+        # Quit after first track, just remove bellow line to run all tracks
+        sys.exit()
 
-def main5():
+def main_create_traffic_matrix():
+    """
+    Creates a traffic matrix for each area, where 'areas_num' are taken from the earlier results.
+    """
     path_predictor = NCDM('npy_files_2/X_B_train.npy')
     X_B = path_predictor.X_B
     num_of_tracks = path_predictor.num_tracks
     print(f"Number of tracks: {num_of_tracks}")
 
     areas_num = [344, 281, 363, 102, 21, 134]
-    # areas_num = [2, 2, 2, 2, 2, 2]
     areas = ["A", "B", "C", "D", "E", "F"]
     count_matrix = CountMatrix(reset=True)
     for k,num in enumerate(areas_num):
@@ -397,37 +382,39 @@ def main5():
             plt.close('all')
             print("\n")
         
-def main6():
+def main_semi_random_generated_init_start_position():
+    """
+    Runs prediction for random generated points in each area.
+    The input to generate_random_point_and_angle_in_polygon must be the area name.
+
+    """
     path_predictor = NCDM('npy_files_2/X_B_train.npy')
     X_B = path_predictor.X_B
     num_of_tracks = path_predictor.num_tracks
     print(f"Number of tracks: {num_of_tracks}")
 
-    areas_num = [2, 2, 2, 2, 2, 2]
+    # areas_num = [2, 2, 2, 2, 2, 2]
     areas = ["A", "B", "C", "D", "E", "F"]
 
-    for k,num in enumerate(range(1)):
-
-        random_point, random_angle = generate_random_point_and_angle_in_polygon(areas[k],X_B=X_B, plot=True)
+    for k in range(num_of_tracks):
+        random_point, random_angle = generate_random_point_and_angle_in_polygon(areas[0],X_B=X_B, plot=False)
         initial_point = find_initial_points(point=random_point, angle=random_angle)
-        # path_predictor.r_c = 7
-        # path_predictor.choice = 1
-        # path_predictor.plot_histogram = False
-        # path_predictor.save_plot = False
-        # path_predictor.run_prediction(initial_point)
-
-        plt.savefig(f"Images/random_generated_points_from_area.png", dpi=300)
+        path_predictor.r_c = 7
+        path_predictor.choice = 1
+        path_predictor.plot_histogram = False
+        path_predictor.save_plot = True
+        path_predictor.run_prediction(initial_point)
         plt.show()
-        plt.close('all')
-        print("\n")
-        
-def main7():
-    path_predictor = NCDM('npy_files_2/X_B_train.npy')
-    num_of_tracks = path_predictor.num_tracks
+        plt.close()      
 
-    # count_matrix = CountMatrix(reset=True)
-    # tracks_to_check = [0,3,5,16,17,18,19,20,22,24,29,30,33,35,37,38,39,40,44,50,51,57,58,59]
-    # for i in range(20,40):
+def main_COLREG_tracks_comparison_with_prediction():
+    """
+    Compares the COLREG tracks with the predicted tracks.
+    Gets a scenario from the COLREG code (AIS_processing).
+
+    """
+    path_predictor = NCDM('npy_files_2/X_B_train.npy')
+
     # file_name = "/home/aflaptop/Documents/Scripts/AIS_processing/npy_files/colreg_tracks_rosbag_2023-09-09-14-16-35.npy"
     file_name = "/home/aflaptop/Documents/Scripts/AIS_processing/npy_files/colreg_tracks_rosbag_2023-09-02-13-17-29.npy"
     test_scenario = np.load(file_name,allow_pickle=True).item()
@@ -435,7 +422,7 @@ def main7():
     pred_dict = {}
     for k, (track_id, track) in enumerate(test_scenario.items()):
         initial_point = path_predictor.input_COLREG_track(track_id, track)
-        path_predictor.r_c = 17
+        path_predictor.r_c = 3
         path_predictor.choice = 1
         path_predictor.plot_histogram = False
         path_predictor.save_plot = True
@@ -473,28 +460,9 @@ def main7():
     save_name = os.path.join(save_dir, base_name)
     print(save_name)
     np.save(save_name, pred_dict)
-    # i want to save three new files
-    # The first one is with the or
-
-    # test_track = test_scenario[2]
-    # initial_point = path_predictor.input_COLREG_track(1, test_track)
-    # path_predictor.r_c = 17
-    # path_predictor.choice = 1
-    # path_predictor.plot_histogram = False
-    # path_predictor.save_plot = True
-    # path_predictor.run_prediction(initial_point)
-    # colreg_track_complete = path_predictor.save_colreg_predicted_track()
-    
-    # keys = list(test_scenario.keys())
-    # last_key = keys[-1]
-    # last_key = int(last_key)
-    # last_key += 1
-    # test_scenario[last_key] = colreg_track_complete
-    # save_name = file_name.split(".")[0] + "_new_2.npy"
-    # np.save(save_name, test_scenario)
 
     plt.show()
  
 
 if __name__ == '__main__':
-    main7()
+    main_test_set()

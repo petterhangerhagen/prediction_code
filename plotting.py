@@ -1,12 +1,10 @@
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
-import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
 from matplotlib.collections import LineCollection
 from matplotlib.path import Path
 
 import numpy as np
-# from utilities import make_new_directory
 import os
 import datetime
 from scipy.stats import norm
