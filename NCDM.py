@@ -14,7 +14,6 @@ All this code is inside the scripts folder. The data is stored in the npy_files 
 3. The data is split into a training and test set in: scripts/split_train_test.py
 ###
 
-
 A lot of plotting code has been developed in order to visualize the results. plotting.py is a mess and has not be cleand up. 
 The easiest way to visualize the results is to create your own code in plotting.py.
 A lot of the functionality used in this script is found in utilities.py and check_start_and_stop.py.
