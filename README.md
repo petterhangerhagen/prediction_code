@@ -26,4 +26,5 @@ To run the code, you need Python 3.8 or later with the following packages instal
 - NumPy
 - Matplotlib
 - Scikit-learn
-\\There are maybe some more packages which are needed, but just install the ones needed depending on the error codes. 
+
+There are maybe some more packages which are needed, but just install the ones needed depending on the error codes. 
