@@ -1,7 +1,7 @@
 # Vessel Movement Prediction from Radar Tracks
 
 ## Overview
-This code is used in my master thesis. It is a simplified version of NCDM, developed by Bjørnar Dalsnes. It is based on his MATLAB code.
+This code is used in my master thesis. It is a simplified version of NCDM, developed by Bjørnar Dalsnes in this paper: https://ieeexplore.ieee.org/document/8455607. The code is written based on the information given in the paper and based on MATLAB code, where the algorithm was written. 
 
 
 ## Dataset

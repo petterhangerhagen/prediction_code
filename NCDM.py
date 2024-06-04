@@ -1,9 +1,9 @@
 """
 Script Title: NCDM.py
-Author: Petter Hangerhagen and Bjørnar Dalsnes
+Author: Petter Hangerhagen
 Email: petthang@stud.ntnu.no
 Date: July 4th, 2024
-Description: This script is based on Bjørnar Dalesnes NCDM algorithm. The original code was written in MATLAB, it is converted to python and simplified.
+Description: This script is based on Bjørnar Dalsnes Neighbor Course Distribution Method(NCDM). The original code was written in MATLAB, it is converted to python and simplified.
 This code does not manage to estimate prediction uncertainty and does not handle branching of sea lanes.
 
 ### Get the data to X_B.npy
