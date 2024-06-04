@@ -3,12 +3,8 @@ import matplotlib.pyplot as plt
 from cubic_spline_interpolation import cubic_spline
 import scipy.io as sio
 
-# data_file = "/home/aflaptop/Documents/Radar-data-processing-and-analysis/code/npy_files/valid_tracks.npy"
 data_file = "/home/aflaptop/Documents/radar_tracker/Radar-data-processing-and-analysis/code/npy_files/valid_tracks.npy"
 data = np.load(data_file, allow_pickle=True)
-
-# print(data.item())
-# print(type(data))
 
 # Assume data is a dictionary-like object stored inside a numpy array, and you need the first element
 T = []
