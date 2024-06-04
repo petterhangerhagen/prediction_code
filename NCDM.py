@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import os
 from plotting import (
     start_plot, 
     plot_all_vessel_tracks, 
@@ -59,6 +60,15 @@ class NCDM:
         self.track_id = track_id
         self.track = track
         track_initial_point = self.track[0][:4]
+        self.track = [track[:2] for track in self.track]
+        self.compare_to_track = True
+        return track_initial_point
+    
+    def input_COLREG_track(self, track_id, track):
+        self.track_wih_all_info = track
+        self.track_id = track_id
+        self.track = np.array(track)[:,1:3]
+        track_initial_point = [self.track[1][0], self.track[1][1], self.track[2][0], self.track[2][1]]
         self.track = [track[:2] for track in self.track]
         self.compare_to_track = True
         return track_initial_point
@@ -228,8 +238,43 @@ class NCDM:
             print("No path found")
             return None
         error = 0
-        self.rmse = RMSE(actual_path, pred_path, plot_statement=False, save_plot=False)
+        self.rmse, _ = RMSE(actual_path, pred_path, plot_statement=False, save_plot=False)
         print(f"Root mean square error: {self.rmse}")
+
+    def save_colreg_predicted_track(self):
+        try:
+            pred_path = self.point_list
+            actual_path = self.track
+        except:
+            print("No path found")
+            return None
+        _, colreg_track = RMSE(actual_path, pred_path, plot_statement=False, save_plot=False)
+        
+        colreg_track_complete = []
+        prev_timestamp = self.track_wih_all_info[0][0]
+        prev_x = colreg_track[0][0]
+        prev_y = colreg_track[0][1]
+        for i in range(1,len(colreg_track)):
+            timestamp = self.track_wih_all_info[i][0]
+            x = colreg_track[i][0]
+            y = colreg_track[i][1]
+
+            delta_t = timestamp - prev_timestamp
+            delta_x = x - prev_x
+            delta_y = y - prev_y
+
+            psi = np.arctan2(delta_x, delta_y)
+            u = np.sqrt(delta_x**2 + delta_y**2) / delta_t
+            # Need x velocity and y velocity
+            x_vel = u * np.sin(psi)
+            y_vel = u * np.cos(psi)
+            psi_deg = np.rad2deg(psi)
+            colreg_track_complete.append([self.track_wih_all_info[i][0], x, y, psi_deg, x_vel, y_vel])
+            
+            # colreg_track_complete.append([self.track_wih_all_info[i][0], colreg_track[i][0], colreg_track[i][1]])
+        # print(colreg_track_complete)
+        return colreg_track_complete
+
 
 
 def main():
@@ -376,7 +421,80 @@ def main6():
         plt.close('all')
         print("\n")
         
+def main7():
+    path_predictor = NCDM('npy_files_2/X_B_train.npy')
+    num_of_tracks = path_predictor.num_tracks
+
+    # count_matrix = CountMatrix(reset=True)
+    # tracks_to_check = [0,3,5,16,17,18,19,20,22,24,29,30,33,35,37,38,39,40,44,50,51,57,58,59]
+    # for i in range(20,40):
+    # file_name = "/home/aflaptop/Documents/Scripts/AIS_processing/npy_files/colreg_tracks_rosbag_2023-09-09-14-16-35.npy"
+    file_name = "/home/aflaptop/Documents/Scripts/AIS_processing/npy_files/colreg_tracks_rosbag_2023-09-02-13-17-29.npy"
+    test_scenario = np.load(file_name,allow_pickle=True).item()
+    test_scenario_keys = list(test_scenario.keys())
+    pred_dict = {}
+    for k, (track_id, track) in enumerate(test_scenario.items()):
+        initial_point = path_predictor.input_COLREG_track(track_id, track)
+        path_predictor.r_c = 17
+        path_predictor.choice = 1
+        path_predictor.plot_histogram = False
+        path_predictor.save_plot = True
+        path_predictor.run_prediction(initial_point)
+        colreg_track_complete = path_predictor.save_colreg_predicted_track()
+        # test_scenario[track_id] = colreg_track_complete
+        if k == 0:
+            new_dict = {}
+            new_dict[track_id] = colreg_track_complete
+            new_dict[test_scenario_keys[1]] = test_scenario[test_scenario_keys[1]]
+
+            pred_dict[track_id] = colreg_track_complete
+        elif k == 1:
+            new_dict[track_id] = colreg_track_complete
+            new_dict[test_scenario_keys[0]] = test_scenario[test_scenario_keys[0]]
+            
+            pred_dict[track_id] = colreg_track_complete
+
+        save_name = f"{file_name.split('.')[0]}_new{k}.npy"
+        save_dir = os.path.dirname(save_name)
+        base_name = os.path.basename(save_name)
+        idk = base_name.split("_")[-2]
+        save_dir = os.path.join(save_dir, idk)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        save_name = os.path.join(save_dir, base_name)
+        print(save_name)
+        np.save(save_name, new_dict)
     
+    save_name = f"{file_name.split('.')[0]}_new{k+1}.npy"
+    save_dir = os.path.dirname(save_name)
+    base_name = os.path.basename(save_name)
+    idk = base_name.split("_")[-2]
+    save_dir = os.path.join(save_dir, idk)
+    save_name = os.path.join(save_dir, base_name)
+    print(save_name)
+    np.save(save_name, pred_dict)
+    # i want to save three new files
+    # The first one is with the or
+
+    # test_track = test_scenario[2]
+    # initial_point = path_predictor.input_COLREG_track(1, test_track)
+    # path_predictor.r_c = 17
+    # path_predictor.choice = 1
+    # path_predictor.plot_histogram = False
+    # path_predictor.save_plot = True
+    # path_predictor.run_prediction(initial_point)
+    # colreg_track_complete = path_predictor.save_colreg_predicted_track()
+    
+    # keys = list(test_scenario.keys())
+    # last_key = keys[-1]
+    # last_key = int(last_key)
+    # last_key += 1
+    # test_scenario[last_key] = colreg_track_complete
+    # save_name = file_name.split(".")[0] + "_new_2.npy"
+    # np.save(save_name, test_scenario)
+
+    plt.show()
+ 
 
 if __name__ == '__main__':
-    main6()
+    main7()

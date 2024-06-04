@@ -62,13 +62,17 @@ def start_plot():
     x_axis_list_str = []
     for x in x_axis_list:
         x_axis_list_str.append(str(int(x-origin_x)))
-    plt.xticks(x_axis_list, x_axis_list_str)
+    ax.set_xticks(ticks=x_axis_list)
+    ax.set_xticklabels(x_axis_list_str)
+    # plt.xticks(x_axis_list, x_axis_list_str)
 
     y_axis_list = np.arange(origin_y-140,origin_y+21,20)
     y_axis_list_str = []
     for y in y_axis_list:
         y_axis_list_str.append(str(int(y-origin_y)))
-    plt.yticks(y_axis_list, y_axis_list_str)
+    ax.set_yticks(ticks=y_axis_list)
+    ax.set_yticklabels(y_axis_list_str)
+    # plt.yticks(y_axis_list, y_axis_list_str)
 
     ax.grid(True)
 
@@ -107,7 +111,7 @@ def plot_single_vessel_track(ax, track, origin_x, origin_y, legend_elements, tra
     ax.plot(x,y, color=c, linewidth=2)
     # ax.plot(x[0],y[0], marker='o', color=c, markersize=10)  # Start point
     legend_elements.append(Line2D([0], [0], color=c, label='True track', linewidth=2))
-    ax.legend(handles=legend_elements, fontsize=font_size, loc='lower right ')
+    ax.legend(handles=legend_elements, fontsize=font_size, loc='lower right')
     plt.tight_layout()
     # Save plot to file
     if save_plot:

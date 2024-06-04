@@ -311,7 +311,7 @@ def RMSE(original_track, predicted_track, plot_statement=False, save_plot=False)
 
     # Calculate RMSE
     rmse = np.sqrt(mean_squared_error(original_track, interpolated_predicted_track))
-    return rmse
+    return rmse, interpolated_predicted_track
 
 def read_results():
     # Define variables to store the sum of RMSE values for r_c=3 and r_c=10
